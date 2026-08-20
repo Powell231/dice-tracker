@@ -1,0 +1,3779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Dice Tracker Prototype</title>
+<style>
+:root{--bg:#101216;--panel:#191d23;--line:#39404a;--red:#ff5147;--green:#68d63d;--blue:#3da5ff;--text:#f5f7fa;--muted:#9ca6b3}
+*{box-sizing:border-box}body{margin:0;background:#ffffff;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,select{font:inherit}button{touch-action:manipulation}
+.app{max-width:1200px;margin:auto;padding:14px}
+header{display:grid;grid-template-columns:1.5fr 1fr 1fr auto;gap:10px;align-items:center}
+.card{background:#ffffff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.set-picker{display:flex;align-items:center;gap:12px;cursor:pointer}
+.set-picker select{background:#222832;color:white;border:1px solid #4a5360;border-radius:10px;padding:10px;width:100%}
+.dicepair{display:flex;gap:8px;align-items:center}.mini{width:38px;height:38px;border-radius:9px;background:#fff;color:#111;display:grid;place-items:center;font-weight:800;font-size:18px}
+.mini.red{outline:3px solid var(--red)}.mini.green{outline:3px solid var(--green)}
+.toprow{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:8px 0 6px}
+.actions button{padding:11px 16px;border-radius:10px;border:1px solid var(--line);background:#252c35;color:#fff}.actions .primary{background:#1769c7}.actions .export{background:#237d22}
+.gridwrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;overflow:hidden}
+.grid{display:grid;grid-template-columns:30px repeat(6,minmax(42px,1fr));gap:1px;min-width:300px;max-width:620px;margin:auto}
+.cell{aspect-ratio:2.15;border:1px solid #343b45;background:#ffffff;display:grid;place-items:center;font-size:15px;font-weight:700}
+.head{background:#20262e;color:var(--green)}.rowhead{color:var(--red)}.cell.hot{background:#303943}
+.legend{text-align:center;color:var(--muted);font-size:10px;padding:4px}
+.entry{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+.entrybox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px}
+.entrytitle{text-align:left;font-weight:900;margin-bottom:7px;font-size:15px}.redtitle{color:var(--red)}.greentitle{color:#4ca8ff}
+.diebuttons{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.die{border:3px solid transparent;border-radius:14px;background:#f4f4f4;color:#111;aspect-ratio:2.35;display:grid;place-items:center;font-size:36px;font-weight:800}
+.die.selected.red{border-color:var(--red);box-shadow:0 0 0 2px #5b211e}.die.selected.green{border-color:var(--green);box-shadow:0 0 0 2px #294d21}.die.selected.blue{border-color:#4ca8ff;box-shadow:0 0 0 2px #173c5d}
+.center{text-align:center}.last{font-size:34px;font-weight:800;padding:12px}.last .r{color:var(--red)}.last .g{color:var(--green)}
+.undo{width:100%;padding:10px;border-radius:10px;background:#252c35;color:#fff;border:1px solid var(--line)}
+.sets{margin-top:12px}.sets h3{margin:0 0 8px}.setlist{display:flex;gap:8px;flex-wrap:wrap}.setbtn{background:#20262e;color:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;gap:7px;align-items:center}.setbtn.active{outline:2px solid var(--blue)}
+.small{font-size:12px;color:var(--muted)}
+.set-overlay,.newset-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:20;padding:24px;align-items:center;justify-content:center}
+.set-panel,.newset-panel{width:min(760px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid #4a5360;border-radius:18px;padding:18px;box-shadow:0 20px 70px rgba(0,0,0,.5)}
+.panelhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:20px}
+.closebtn{border:1px solid var(--line);background:#252c35;color:#fff;border-radius:9px;padding:8px 11px}
+.setlist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.setbtn{min-height:64px;justify-content:flex-start}.setbtn .mini{width:34px;height:34px;font-size:23px}
+.newset{width:100%;margin-top:14px;padding:13px;border-radius:11px;border:1px dashed #5d6875;background:#20262e;color:#fff;font-weight:700}
+.newset-dice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.face-label{font-size:11px;color:var(--muted);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.08em}
+.facebuttons{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.facebtn{aspect-ratio:1;border-radius:9px;border:2px solid transparent;background:#f4f4f4;color:#111;font-size:20px;font-weight:800}
+.facebtn.selected.red{border-color:var(--red);box-shadow:0 0 0 2px #5b211e}
+.facebtn.selected.green{border-color:var(--green);box-shadow:0 0 0 2px #294d21}
+.preview{text-align:center;padding:16px;font-size:15px}.preview .mini{display:inline-grid;margin:4px;width:50px;height:50px;font-size:24px}
+.save-set{width:100%;padding:14px;border:0;border-radius:11px;background:#1769c7;color:#fff;font-weight:800}
+@media(max-width:800px){.setlist{grid-template-columns:1fr}.newset-dice{grid-template-columns:1fr}}
+@media(max-width:800px){header{grid-template-columns:1fr 1fr}.entry{grid-template-columns:1fr}.center{order:3}.toprow{align-items:stretch;flex-direction:column}.actions{display:flex;gap:8px}.actions button{flex:1}}
+
+/* V5 landscape layout */
+@media (min-width: 801px) {
+  .app{max-width:1400px;padding:12px}
+  header{grid-template-columns:1fr 1fr 1fr auto;gap:12px}
+  header .card{min-height:68px}
+  .toprow{display:none}
+  .gridwrap{padding:8px}
+  .grid{max-width:none;width:100%;grid-template-columns:42px repeat(6,minmax(72px,1fr));gap:2px}
+  .cell{aspect-ratio:1.65;font-size:20px}
+  .legend{font-size:11px;padding:3px}
+  .mainwork{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:stretch;margin-top:10px}
+  .infopanel{display:flex;flex-direction:column;gap:10px}
+  .infopanel .card{flex:0 0 auto}
+  .entry{grid-column:1 / -1;display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
+  .entrybox{padding:7px}
+  .entrytitle{font-size:14px;margin-bottom:5px;text-align:center}
+  .diebuttons{display:flex;justify-content:center;gap:9px}
+  .die{width:72px;height:52px;aspect-ratio:auto;font-size:38px;border-radius:10px}
+  .center{display:flex;justify-content:center}
+  .undo{width:auto;padding:7px 14px}
+}
+@media (max-width:800px) {
+  .mainwork{display:block}
+  .infopanel{display:none}
+}
+
+/* V6: stacked left info, grid top-right */
+@media (min-width: 801px) {
+  .app{max-width:1400px;padding:12px}
+  .v6top{display:grid;grid-template-columns:310px 1fr;gap:14px;align-items:start}
+  .top-left-stack{display:flex;flex-direction:column;gap:8px}
+  .top-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .top-actions button{padding:12px 10px;border-radius:10px;border:1px solid var(--line);color:#fff;font-weight:800}
+  .top-stats{display:grid;grid-template-columns:90px 1fr;gap:8px}
+  .statcard{min-height:58px;padding:8px}
+  .top-grid-slot .gridwrap{height:100%;padding:8px}
+  .top-grid-slot .grid{width:100%;max-width:none;grid-template-columns:38px repeat(6,minmax(68px,1fr));gap:2px}
+  .top-grid-slot .cell{aspect-ratio:1.7;font-size:19px}
+  .top-grid-slot .legend{font-size:10px;padding:3px}
+  .entry{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
+  .entrybox{padding:7px}
+  .entrytitle{font-size:14px;margin-bottom:5px;text-align:center}
+  .diebuttons{display:flex;justify-content:center;gap:9px}
+  .die{width:72px;height:52px;aspect-ratio:auto;font-size:38px;border-radius:10px}
+  .center{display:flex;justify-content:center}
+  .undo{width:auto;padding:7px 14px}
+}
+
+/* V7: New Session/Export line 1, Session line 2, Rolls line 3 */
+@media (min-width: 801px) {
+  .v7top{display:grid;grid-template-columns:310px 1fr;gap:14px;align-items:start}
+  .top-left-stack{display:flex;flex-direction:column;gap:6px}
+  .top-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .top-actions button{padding:11px 10px;border-radius:10px;border:1px solid var(--line);color:#fff;font-weight:800}
+  .sessionline{padding:4px 2px}
+  .sessioncard,.rollcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+  .rollcard{padding:6px 10px}
+  .top-grid-slot .gridwrap{padding:8px}
+  .top-grid-slot .grid{width:100%;max-width:none;grid-template-columns:38px repeat(6,minmax(68px,1fr));gap:2px}
+  .top-grid-slot .cell{aspect-ratio:1.7;font-size:19px}
+  .top-grid-slot .legend{font-size:10px;padding:3px}
+  .entry{display:grid;grid-template-columns:1fr;gap:6px;margin-top:8px}
+  .entrybox{padding:7px}
+  .entrytitle{font-size:14px;margin-bottom:5px;text-align:center}
+  .diebuttons{display:flex;justify-content:center;gap:9px}
+  .die{width:72px;height:52px;aspect-ratio:auto;font-size:38px;border-radius:10px}
+  .center{display:flex;justify-content:center}
+  .undo{width:auto;padding:7px 14px}
+}
+
+/* V8: stacked current dice-set representation */
+.stacked-dice{display:flex;gap:30px;align-items:flex-end;margin-top:5px}
+.dice-stack{display:flex;flex-direction:column;align-items:center;gap:3px}
+.dice-stack .mini{width:88px;height:88px;font-size:58px;border-radius:14px}
+.stack-label{font-size:9px;font-weight:800;letter-spacing:.05em;margin-bottom:1px}
+.red-label{color:var(--red)}
+.blue-label{color:#4ca8ff}
+
+/* V11 visual correction: match the white/red/blue iPad mockup */
+html, body { background:#ffffff !important; color:#20242a !important; }
+body { background:#ffffff !important; }
+.card, .gridwrap, .entrybox { background:#ffffff !important; color:#20242a !important; border-color:#d8dde5 !important; }
+
+.actions button, .top-actions button {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+  border-color:#1769c7 !important;
+}
+.actions .primary, .top-actions .primary {
+  background:#159447 !important;
+  color:#ffffff !important;
+}
+.actions .export, .top-actions .export {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+}
+
+.gridwrap { background:#ffffff !important; }
+.grid { background:#ffffff !important; }
+.cell {
+  background:#ffffff !important;
+  color:#20242a !important;
+  border:1px solid #d5d9df !important;
+}
+.head {
+  background:#d92722 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+}
+.rowhead {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+  border-color:#ffffff !important;
+}
+.cell.hot { background:#f3f5f7 !important; }
+
+.die {
+  background:#d92722 !important;
+  color:#ffffff !important;
+  border:2px solid #c91f1a !important;
+  box-shadow:0 1px 3px rgba(0,0,0,.16) !important;
+}
+.die.selected.red {
+  background:#d92722 !important;
+  color:#ffffff !important;
+  border-color:#a71915 !important;
+  box-shadow:0 0 0 3px rgba(217,39,34,.22) !important;
+}
+.die.selected.blue {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+  border-color:#0d55aa !important;
+  box-shadow:0 0 0 3px rgba(23,105,199,.22) !important;
+}
+
+/* The current-set preview uses solid colored dice with large white faces. */
+.dice-stack .mini {
+  width:88px !important;
+  height:88px !important;
+  background:#d92722 !important;
+  color:#ffffff !important;
+  outline:0 !important;
+  border:2px solid #c91f1a !important;
+  border-radius:14px !important;
+  font-size:58px !important;
+  box-shadow:0 1px 3px rgba(0,0,0,.16) !important;
+}
+.dice-stack .mini.red {
+  background:#d92722 !important;
+  color:#ffffff !important;
+  outline:0 !important;
+}
+.dice-stack .mini.blue,
+.dice-stack .mini.green {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+  outline:0 !important;
+}
+.red-label { color:#d92722 !important; }
+.blue-label { color:#1769c7 !important; }
+
+.setbtn {
+  background:#ffffff !important;
+  color:#20242a !important;
+  border-color:#d8dde5 !important;
+}
+.setbtn .mini {
+  background:#ffffff !important;
+  color:#20242a !important;
+}
+
+/* Keep the white mockup clean and spacious. */
+.label, .small, .legend { color:#68717d !important; }
+h1, h2, h3, p { color:#20242a; }
+
+/* V12: make blue row-number headers match red column headers exactly */
+.grid .rowhead {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+  border:1px solid #ffffff !important;
+  border-radius:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  min-height:0 !important;
+  height:auto !important;
+  display:grid !important;
+  place-items:center !important;
+  font-size:19px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
+}
+.grid .head {
+  background:#d92722 !important;
+  color:#ffffff !important;
+  border:1px solid #ffffff !important;
+  border-radius:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  min-height:0 !important;
+  height:auto !important;
+  display:grid !important;
+  place-items:center !important;
+  font-size:19px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
+}
+
+/* V13: matched grid row headers and bottom-right Export */
+@media (min-width: 801px) {
+  .top-actions .export {
+    position:fixed !important;
+    right:20px !important;
+    bottom:18px !important;
+    z-index:50 !important;
+    width:112px !important;
+    height:46px !important;
+    box-shadow:0 3px 10px rgba(0,0,0,.15) !important;
+  }
+  .top-actions { grid-template-columns:1fr !important; }
+}
+.grid .cell.rowhead {
+  background:#1769c7 !important;
+  color:#ffffff !important;
+  border:1px solid #ffffff !important;
+  border-radius:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  aspect-ratio:1.7 !important;
+  min-height:0 !important;
+  height:auto !important;
+  display:grid !important;
+  place-items:center !important;
+  align-self:stretch !important;
+  font-size:19px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
+}
+.grid .cell.head {
+  background:#d92722 !important;
+  color:#ffffff !important;
+  border:1px solid #ffffff !important;
+  border-radius:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  aspect-ratio:1.7 !important;
+  min-height:0 !important;
+  height:auto !important;
+  display:grid !important;
+  place-items:center !important;
+  align-self:stretch !important;
+  font-size:19px !important;
+  font-weight:800 !important;
+  line-height:1 !important;
+  box-sizing:border-box !important;
+}
+
+/* V14: wider blue row headers + 30% smaller left information fields */
+@media (min-width: 801px) {
+  .v7top { grid-template-columns:270px 1fr !important; gap:12px !important; }
+
+  .top-left-stack { gap:5px !important; }
+  .top-actions button { padding:8px 8px !important; }
+  .sessioncard, .rollcard { padding:5px 8px !important; }
+  .sessioncard .label, .rollcard .label { font-size:9px !important; }
+  .sessioncard #sessionName { font-size:13px !important; }
+  .rollcard #rollCount { font-size:21px !important; }
+  .set-picker { padding:7px !important; }
+  .set-picker .label { font-size:9px !important; }
+  .set-picker .small { font-size:10px !important; }
+
+  /* Make the blue row-number column twice as wide as before. */
+  .top-grid-slot .grid {
+    grid-template-columns:76px repeat(6,minmax(68px,1fr)) !important;
+  }
+  .grid .cell.rowhead {
+    width:100% !important;
+    font-size:20px !important;
+  }
+}
+
+/* V15: final visual arrangement for iPad test */
+@media (min-width: 801px) {
+  /* Session display: white field, black text */
+  .sessioncard {
+    background:#ffffff !important;
+    color:#20242a !important;
+    border:1px solid #cfd5dd !important;
+  }
+  .sessioncard #sessionName {
+    color:#20242a !important;
+  }
+
+  /* Green Undo and Export */
+  .undo {
+    background:#159447 !important;
+    color:#ffffff !important;
+    border-color:#159447 !important;
+  }
+  .top-actions .export,
+  .actions .export {
+    background:#159447 !important;
+    color:#ffffff !important;
+    border-color:#159447 !important;
+  }
+
+  /* Put result titles to the LEFT of their dice icons. */
+  .entrybox {
+    display:grid !important;
+    grid-template-columns:245px 1fr !important;
+    align-items:center !important;
+    column-gap:14px !important;
+  }
+  .entrytitle {
+    text-align:left !important;
+    margin:0 !important;
+    font-size:15px !important;
+    line-height:1.2 !important;
+  }
+  .entrybox .diebuttons {
+    justify-content:flex-start !important;
+  }
+  .entrybox .die {
+    flex:0 0 auto !important;
+  }
+
+  /* Keep Undo directly under Current Dice Set in the left panel. */
+  .top-left-stack {
+    position:relative;
+  }
+}
+
+/* V16: approved current-dice representation + stronger session field */
+.sessioncard {
+  background:#ffffff !important;
+  border:2px solid #20242a !important;
+  color:#20242a !important;
+}
+.sessioncard .label,
+.sessioncard #sessionName {
+  color:#20242a !important;
+}
+
+/* Make Undo substantially larger. */
+@media (min-width: 801px) {
+  .top-left-stack .undo {
+    width:100% !important;
+    min-height:58px !important;
+    font-size:17px !important;
+    font-weight:900 !important;
+    border-radius:10px !important;
+    padding:12px 14px !important;
+  }
+}
+
+/* Current dice set: large solid dice with large white pips,
+   two same-color dice stacked vertically, exactly like the mockup. */
+.stacked-dice {
+  display:flex !important;
+  justify-content:space-around !important;
+  align-items:flex-start !important;
+  gap:18px !important;
+  margin-top:8px !important;
+}
+.dice-stack {
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:7px !important;
+}
+.dice-stack .mini {
+  width:88px !important;
+  height:88px !important;
+  border-radius:13px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  grid-template-rows:repeat(3,1fr) !important;
+  place-items:center !important;
+  padding:9px !important;
+  box-sizing:border-box !important;
+  outline:none !important;
+}
+.dice-stack .mini.red {
+  background:#d92722 !important;
+  border:2px solid #c51f1a !important;
+}
+.dice-stack .mini.blue,
+.dice-stack .mini.green {
+  background:#1769c7 !important;
+  border:2px solid #0f56ad !important;
+}
+.dice-stack .mini i {
+  width:18px !important;
+  height:18px !important;
+  background:#ffffff !important;
+  border-radius:50% !important;
+  display:block !important;
+}
+
+/* V17: Rolls matches Session field */
+.rollcard {
+  background:#ffffff !important;
+  border:2px solid #20242a !important;
+  color:#20242a !important;
+}
+.rollcard .label,
+.rollcard #rollCount {
+  color:#20242a !important;
+}
+
+/* Result dice: same physical appearance as Current Dice Set dice.
+   Solid red/blue body, large white pip layout, no font-symbol dice. */
+.entrybox .die {
+  width:72px !important;
+  height:72px !important;
+  min-width:72px !important;
+  border-radius:13px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  grid-template-rows:repeat(3,1fr) !important;
+  place-items:center !important;
+  padding:8px !important;
+  box-sizing:border-box !important;
+  font-size:0 !important;
+}
+.entrybox .die.red {
+  background:#d92722 !important;
+  border:2px solid #c51f1a !important;
+}
+.entrybox .die.blue {
+  background:#1769c7 !important;
+  border:2px solid #0f56ad !important;
+}
+.entrybox .die i {
+  width:15px !important;
+  height:15px !important;
+  background:#ffffff !important;
+  border-radius:50% !important;
+  display:block !important;
+}
+
+/* Keep the result buttons centered and square. */
+.entrybox .diebuttons {
+  justify-content:flex-start !important;
+  align-items:center !important;
+}
+
+/* V18: restore working result-die buttons and shared pip artwork */
+.entrybox .die {
+  width:72px !important;
+  height:72px !important;
+  min-width:72px !important;
+  border-radius:13px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  grid-template-rows:repeat(3,1fr) !important;
+  place-items:center !important;
+  padding:8px !important;
+  box-sizing:border-box !important;
+  font-size:0 !important;
+}
+.entrybox .die.red { background:#d92722 !important; border:2px solid #c51f1a !important; }
+.entrybox .die.blue { background:#1769c7 !important; border:2px solid #0f56ad !important; }
+.entrybox .die i {
+  width:15px !important;
+  height:15px !important;
+  background:#fff !important;
+  border-radius:50% !important;
+  display:block !important;
+}
+.entrybox .die.selected { box-shadow:0 0 0 3px rgba(32,36,42,.25) !important; }
+
+/* V19: live Session Info panel in the unused lower-right space */
+.session-info-panel{
+  background:#fff !important;
+  border:2px solid #20242a !important;
+  border-radius:10px !important;
+  color:#20242a !important;
+  padding:10px 12px !important;
+  box-sizing:border-box !important;
+}
+.session-info-title{
+  color:#20242a !important;
+  font-size:13px !important;
+  font-weight:900 !important;
+  letter-spacing:.05em !important;
+  margin-bottom:7px !important;
+}
+.session-info-grid{
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  row-gap:5px !important;
+  column-gap:18px !important;
+  align-items:center !important;
+  font-size:11px !important;
+}
+.session-info-grid div{
+  color:#68717d !important;
+  font-weight:800 !important;
+}
+.session-info-grid strong{
+  color:#20242a !important;
+  font-size:15px !important;
+}
+@media (min-width:801px){
+  .session-info-panel{
+    position:fixed !important;
+    right:20px !important;
+    bottom:76px !important;
+    width:220px !important;
+    z-index:40 !important;
+  }
+}
+
+/* V20: current dice set convention = LEFT/blue first, RIGHT/red second */
+.stacked-dice{
+  flex-direction:row !important;
+}
+.stacked-dice .dice-stack.blue,
+.stacked-dice .dice-stack.green{
+  order:1 !important;
+}
+.stacked-dice .dice-stack.red{
+  order:2 !important;
+}
+
+/* V21: selected result die gets a strong black outline */
+.entrybox .die.selected {
+  outline:3px solid #20242a !important;
+  outline-offset:2px !important;
+  box-shadow:none !important;
+}
+
+/* V23: V21 main screen preserved; changes are limited to Select Dice Set popup */
+.dice-set-modal .dice-set-option,
+.dice-set-picker .dice-set-option,
+.set-modal .set-option,
+.modal .set-option {
+  background:#ffffff !important;
+  color:#20242a !important;
+}
+
+/* Popup dice representation: actual white dice with black pips/borders. */
+.dice-set-modal .mini,
+.dice-set-picker .mini,
+.set-modal .mini,
+.modal .mini {
+  background:#ffffff !important;
+  color:#20242a !important;
+  border:2px solid #20242a !important;
+  outline:none !important;
+  width:64px !important;
+  height:64px !important;
+  border-radius:10px !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  grid-template-rows:repeat(3,1fr) !important;
+  place-items:center !important;
+  padding:7px !important;
+  box-sizing:border-box !important;
+}
+.dice-set-modal .mini i,
+.dice-set-picker .mini i,
+.set-modal .mini i,
+.modal .mini i {
+  width:13px !important;
+  height:13px !important;
+  background:#20242a !important;
+  border-radius:50% !important;
+}
+
+/* Center the two dice columns in the popup. */
+.dice-set-modal .stacked-dice,
+.dice-set-picker .stacked-dice,
+.set-modal .stacked-dice,
+.modal .stacked-dice {
+  justify-content:center !important;
+  gap:38px !important;
+}
+.dice-set-modal .dice-stack,
+.dice-set-picker .dice-stack,
+.set-modal .dice-stack,
+.modal .dice-stack {
+  align-items:center !important;
+  min-width:90px !important;
+}
+
+/* Top / Front labels sit beneath the corresponding popup dice. */
+.dice-set-modal .current-set-labels,
+.dice-set-picker .current-set-labels,
+.set-modal .current-set-labels,
+.modal .current-set-labels {
+  display:flex !important;
+  justify-content:center !important;
+  gap:38px !important;
+  margin-top:6px !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+}
+
+/* Last-saved set is visually clear in the popup. */
+.dice-set-modal .selected,
+.dice-set-picker .selected,
+.set-modal .selected,
+.modal .selected {
+  border:3px solid #20242a !important;
+}
+
+/* V24: Select Dice Set popup — two displayed dice sets side by side,
+   directly underneath the selection fields; blue/left then red/right. */
+.dice-set-modal .set-display,
+.dice-set-picker .set-display,
+.set-modal .set-display,
+.modal .set-display {
+  display:flex !important;
+  flex-direction:row !important;
+  justify-content:center !important;
+  align-items:flex-start !important;
+  gap:55px !important;
+  width:100% !important;
+  margin:12px auto 0 !important;
+}
+.dice-set-modal .set-display .blue-set,
+.dice-set-picker .set-display .blue-set,
+.set-modal .set-display .blue-set,
+.modal .set-display .blue-set {
+  order:1 !important;
+}
+.dice-set-modal .set-display .red-set,
+.dice-set-picker .set-display .red-set,
+.set-modal .set-display .red-set,
+.modal .set-display .red-set {
+  order:2 !important;
+}
+.dice-set-modal .dice-stack,
+.dice-set-picker .dice-stack,
+.set-modal .dice-stack,
+.modal .dice-stack {
+  align-items:center !important;
+}
+.dice-set-modal .stacked-dice,
+.dice-set-picker .stacked-dice,
+.set-modal .stacked-dice,
+.modal .stacked-dice {
+  flex-direction:column !important;
+  align-items:center !important;
+  gap:7px !important;
+}
+
+.dice-set-modal .stacked-dice > .dice-stack.blue,
+.dice-set-picker .stacked-dice > .dice-stack.blue,
+.set-modal .stacked-dice > .dice-stack.blue,
+.modal .stacked-dice > .dice-stack.blue,
+.dice-set-modal .stacked-dice > .dice-stack.green,
+.dice-set-picker .stacked-dice > .dice-stack.green,
+.set-modal .stacked-dice > .dice-stack.green,
+.modal .stacked-dice > .dice-stack.green { order:1 !important; }
+
+.dice-set-modal .stacked-dice > .dice-stack.red,
+.dice-set-picker .stacked-dice > .dice-stack.red,
+.set-modal .stacked-dice > .dice-stack.red,
+.modal .stacked-dice > .dice-stack.red { order:2 !important; }
+
+/* V26: V24 baseline. Changes ONLY to Create New Dice Set popup. */
+#createSetModal .field-row,
+#createNewSetModal .field-row,
+#createSetModal .form-row,
+#createNewSetModal .form-row,
+.create-set-modal .field-row,
+.create-new-set-modal .field-row,
+.create-set-modal .form-row,
+.create-new-set-modal .form-row {
+  display:flex !important;
+  flex-direction:row !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:12px !important;
+  margin:6px 0 !important;
+}
+
+/* Selected die representation sits immediately to the right of its
+   Top/Front selection field. */
+#createSetModal .selected-die,
+#createNewSetModal .selected-die,
+.create-set-modal .selected-die,
+.create-new-set-modal .selected-die {
+  flex:0 0 auto !important;
+  margin:0 !important;
+  width:58px !important;
+  height:58px !important;
+}
+
+/* Keep the popup compact vertically. */
+#createSetModal,
+#createNewSetModal,
+.create-set-modal,
+.create-new-set-modal {
+  padding-top:12px !important;
+  padding-bottom:12px !important;
+}
+
+/* V27: dice color convention — RED = RIGHT, BLUE = LEFT.
+   Preserve the colored outline style for the selected die. */
+.entrybox .die.red.selected,
+.dice-set-modal .die.red.selected,
+.dice-set-picker .die.red.selected,
+.set-modal .die.red.selected,
+.modal .die.red.selected {
+  border-color:#d92722 !important;
+  outline:3px solid #d92722 !important;
+}
+.entrybox .die.blue.selected,
+.dice-set-modal .die.blue.selected,
+.dice-set-picker .die.blue.selected,
+.set-modal .die.blue.selected,
+.modal .die.blue.selected {
+  border-color:#1769c7 !important;
+  outline:3px solid #1769c7 !important;
+}
+
+/* V28: Create New Dice Set field colors — LEFT=BLUE, RIGHT=RED */
+#createSetModal .left,
+#createNewSetModal .left,
+.create-set-modal .left,
+.create-new-set-modal .left,
+#createSetModal .left-die,
+#createNewSetModal .left-die,
+.create-set-modal .left-die,
+.create-new-set-modal .left-die {
+  color:#1769c7 !important;
+  border-color:#1769c7 !important;
+}
+#createSetModal .right,
+#createNewSetModal .right,
+.create-set-modal .right,
+.create-new-set-modal .right,
+#createSetModal .right-die,
+#createNewSetModal .right-die,
+.create-set-modal .right-die,
+.create-new-set-modal .right-die {
+  color:#d92722 !important;
+  border-color:#d92722 !important;
+}
+
+/* V29: no pull-downs in Create New Dice Set.
+   Directly tap one of six die faces for each Top/Front selection. */
+#newSetOverlay .newset-dice{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:16px !important;
+}
+#newSetOverlay .entrybox{
+  background:#fff !important;
+}
+#newSetOverlay .entrybox:first-child{
+  border-color:#1769c7 !important;
+}
+#newSetOverlay .entrybox:nth-child(2){
+  border-color:#d92722 !important;
+}
+#newSetOverlay .face-label{
+  font-weight:900 !important;
+}
+#newSetOverlay .entrybox:first-child .face-label{
+  color:#1769c7 !important;
+}
+#newSetOverlay .entrybox:nth-child(2) .face-label{
+  color:#d92722 !important;
+}
+#newSetOverlay .facebuttons{
+  display:grid !important;
+  grid-template-columns:repeat(6, 1fr) !important;
+  gap:6px !important;
+  margin:4px 0 9px !important;
+}
+#newSetOverlay .facebuttons .facebtn,
+#newSetOverlay .facebuttons button{
+  min-width:44px !important;
+  min-height:44px !important;
+  padding:4px !important;
+  background:#fff !important;
+  border:2px solid #dfe3e8 !important;
+  border-radius:8px !important;
+}
+#newSetOverlay .entrybox:first-child .facebuttons button.selected{
+  border:3px solid #1769c7 !important;
+  box-shadow:0 0 0 1px #1769c7 inset !important;
+}
+#newSetOverlay .entrybox:nth-child(2) .facebuttons button.selected{
+  border:3px solid #d92722 !important;
+  box-shadow:0 0 0 1px #d92722 inset !important;
+}
+#newSetOverlay .facebuttons .die,
+#newSetOverlay .facebuttons .mini{
+  width:36px !important;
+  height:36px !important;
+  margin:auto !important;
+  background:#fff !important;
+}
+.bluetitle{color:#1769c7 !important;}
+
+/* V30: mirrored compact Create New Dice Set layout.
+   LEFT/BLUE: selection buttons -> selected die preview.
+   RIGHT/RED: selected die preview -> selection buttons. */
+#newSetOverlay .newset-dice{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:12px !important;
+  align-items:stretch !important;
+}
+#newSetOverlay .entrybox{
+  background:#fff !important;
+  border-radius:12px !important;
+  padding:10px !important;
+}
+#newSetOverlay .left-config{border:2px solid #1769c7 !important;}
+#newSetOverlay .right-config{border:2px solid #d92722 !important;}
+#newSetOverlay .face-row{
+  display:grid !important;
+  grid-template-columns:48px minmax(0,1fr) 58px !important;
+  align-items:center !important;
+  gap:7px !important;
+  margin:7px 0 !important;
+}
+#newSetOverlay .right-row{
+  grid-template-columns:58px minmax(0,1fr) 48px !important;
+}
+#newSetOverlay .face-label{
+  font-weight:900 !important;
+  font-size:11px !important;
+}
+#newSetOverlay .left-row .face-label{color:#1769c7 !important;text-align:left !important;}
+#newSetOverlay .right-row .face-label{color:#d92722 !important;text-align:right !important;}
+#newSetOverlay .facebuttons{
+  display:grid !important;
+  grid-template-columns:repeat(6, minmax(28px,1fr)) !important;
+  gap:4px !important;
+  margin:0 !important;
+}
+#newSetOverlay .facebuttons button{
+  min-width:0 !important;
+  width:100% !important;
+  min-height:38px !important;
+  height:38px !important;
+  padding:2px !important;
+  background:#fff !important;
+  border:2px solid #dfe3e8 !important;
+  border-radius:7px !important;
+}
+#newSetOverlay .left-config .facebuttons button.selected{
+  border-color:#1769c7 !important;
+  box-shadow:0 0 0 1px #1769c7 inset !important;
+}
+#newSetOverlay .right-config .facebuttons button.selected{
+  border-color:#d92722 !important;
+  box-shadow:0 0 0 1px #d92722 inset !important;
+}
+#newSetOverlay .face-preview{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:54px !important;
+  height:54px !important;
+  background:#fff !important;
+  border-radius:9px !important;
+}
+#newSetOverlay .left-config .face-preview .mini{border:3px solid #1769c7 !important;}
+#newSetOverlay .right-config .face-preview .mini{border:3px solid #d92722 !important;}
+
+/* ===== V31 Create New Dice Set popup ===== */
+#newSetOverlay .modal,
+#newSetOverlay .dialog,
+#newSetOverlay .popup {
+  background:#ffffff !important;
+  color:#20242a !important;
+  border-radius:16px !important;
+  max-width:1050px !important;
+  width:94vw !important;
+  padding:0 !important;
+  overflow:hidden !important;
+}
+#newSetOverlay .modal-header,
+#newSetOverlay .dialog-header,
+#newSetOverlay .popup-header {
+  min-height:70px !important;
+  border-bottom:1px solid #d8dde3 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  position:relative !important;
+}
+#newSetOverlay .modal-title,
+#newSetOverlay .dialog-title,
+#newSetOverlay h2 {
+  font-size:30px !important;
+  font-weight:900 !important;
+  letter-spacing:.3px !important;
+  margin:0 !important;
+}
+#newSetOverlay .modal-close,
+#newSetOverlay .dialog-close,
+#newSetOverlay .popup-close {
+  position:absolute !important;
+  right:18px !important;
+  top:12px !important;
+  font-size:34px !important;
+}
+#newSetOverlay .subtitle,
+#newSetOverlay .modal-subtitle {
+  text-align:center !important;
+  font-size:18px !important;
+  color:#4b5563 !important;
+  margin:18px 0 20px !important;
+}
+#newSetOverlay .newset-dice {
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:0 !important;
+  margin:0 18px !important;
+}
+#newSetOverlay .entrybox {
+  background:#fff !important;
+  border:0 !important;
+  border-radius:0 !important;
+  padding:18px 28px 22px !important;
+}
+#newSetOverlay .entrybox + .entrybox {
+  border-left:2px solid #d9dee5 !important;
+}
+#newSetOverlay .entrytitle {
+  font-size:24px !important;
+  font-weight:900 !important;
+  margin:0 0 22px !important;
+}
+#newSetOverlay .bluetitle { color:#1769c7 !important; }
+#newSetOverlay .redtitle { color:#d92722 !important; }
+
+#newSetOverlay .face-row {
+  display:grid !important;
+  align-items:center !important;
+  gap:10px !important;
+  margin:18px 0 !important;
+}
+#newSetOverlay .left-row {
+  grid-template-columns:58px minmax(0,1fr) 88px !important;
+}
+#newSetOverlay .right-row {
+  grid-template-columns:88px minmax(0,1fr) 58px !important;
+}
+#newSetOverlay .face-label {
+  font-size:16px !important;
+  font-weight:900 !important;
+}
+#newSetOverlay .left-row .face-label {
+  color:#1769c7 !important;
+  text-align:left !important;
+}
+#newSetOverlay .right-row .face-label {
+  color:#d92722 !important;
+  text-align:right !important;
+}
+#newSetOverlay .facebuttons {
+  display:grid !important;
+  grid-template-columns:repeat(6,minmax(38px,1fr)) !important;
+  gap:5px !important;
+  margin:0 !important;
+}
+#newSetOverlay .facebuttons button {
+  min-width:0 !important;
+  width:100% !important;
+  height:48px !important;
+  padding:2px !important;
+  background:#fff !important;
+  border:2px solid #dfe3e8 !important;
+  border-radius:9px !important;
+}
+#newSetOverlay .left-config .facebuttons button.selected {
+  border:3px solid #1769c7 !important;
+  box-shadow:0 0 0 1px #1769c7 inset !important;
+}
+#newSetOverlay .right-config .facebuttons button.selected {
+  border:3px solid #d92722 !important;
+  box-shadow:0 0 0 1px #d92722 inset !important;
+}
+#newSetOverlay .face-preview .mini {
+  width:76px !important;
+  height:76px !important;
+  background:#fff !important;
+  border-radius:11px !important;
+}
+#newSetOverlay .left-config .face-preview .mini {
+  border:3px solid #1769c7 !important;
+}
+#newSetOverlay .right-config .face-preview .mini {
+  border:3px solid #d92722 !important;
+}
+#newSetOverlay .preview { display:none !important; }
+
+/* Footer buttons */
+#newSetOverlay .modal-footer,
+#newSetOverlay .dialog-footer,
+#newSetOverlay .popup-footer {
+  border-top:1px solid #d8dde3 !important;
+  display:flex !important;
+  justify-content:center !important;
+  gap:22px !important;
+  padding:22px !important;
+}
+#newSetOverlay .cancel {
+  background:#e8ebef !important;
+  color:#374151 !important;
+}
+#newSetOverlay .save,
+#newSetOverlay .save-set {
+  background:#18a957 !important;
+  color:#fff !important;
+}
+
+/* ===== V32: approved Create New Dice Set mockup ===== */
+#newSetOverlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:20;
+  background:rgba(12,16,22,.78);
+  padding:16px;
+  align-items:center;
+  justify-content:center;
+}
+#newSetOverlay.open{display:flex !important;}
+
+#newSetOverlay .newset-panel{
+  width:min(1120px,100%);
+  max-height:94vh;
+  overflow:hidden;
+  background:#fff !important;
+  color:#20242a !important;
+  border:1px solid #d8dde3 !important;
+  border-radius:16px !important;
+  padding:0 !important;
+  box-shadow:0 20px 70px rgba(0,0,0,.45);
+}
+
+#newSetOverlay .panelhead{
+  min-height:86px !important;
+  margin:0 !important;
+  padding:12px 22px !important;
+  border-bottom:1px solid #d8dde3 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  position:relative !important;
+  font-size:inherit !important;
+}
+#newSetOverlay .newset-heading{
+  text-align:center !important;
+}
+#newSetOverlay .newset-heading b{
+  display:block !important;
+  font-size:30px !important;
+  line-height:1.1 !important;
+  font-weight:900 !important;
+  text-transform:uppercase !important;
+  color:#151a20 !important;
+}
+#newSetOverlay .newset-subtitle{
+  margin-top:8px !important;
+  font-size:16px !important;
+  color:#4b5563 !important;
+}
+#newSetOverlay .panelhead .closebtn{
+  position:absolute !important;
+  right:18px !important;
+  top:16px !important;
+  background:transparent !important;
+  border:0 !important;
+  color:#374151 !important;
+  font-size:28px !important;
+  padding:4px 8px !important;
+}
+
+#newSetOverlay .newset-dice{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  gap:0 !important;
+  margin:0 !important;
+}
+#newSetOverlay .entrybox{
+  border:0 !important;
+  border-radius:0 !important;
+  background:#fff !important;
+  padding:24px 34px 28px !important;
+}
+#newSetOverlay .entrybox + .entrybox{
+  border-left:2px solid #d9dee5 !important;
+}
+#newSetOverlay .entrytitle{
+  font-size:24px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  margin:0 0 24px !important;
+  text-align:left !important;
+}
+#newSetOverlay .bluetitle{color:#1769c7 !important;}
+#newSetOverlay .redtitle{color:#d92722 !important;}
+
+#newSetOverlay .face-row{
+  display:grid !important;
+  align-items:center !important;
+  gap:10px !important;
+  margin:18px 0 !important;
+}
+#newSetOverlay .left-row{
+  grid-template-columns:58px minmax(0,1fr) 88px !important;
+}
+#newSetOverlay .right-row{
+  grid-template-columns:88px minmax(0,1fr) 58px !important;
+}
+#newSetOverlay .face-label{
+  font-size:16px !important;
+  font-weight:900 !important;
+  text-transform:uppercase !important;
+}
+#newSetOverlay .left-row .face-label{
+  color:#1769c7 !important;
+  text-align:left !important;
+}
+#newSetOverlay .right-row .face-label{
+  color:#d92722 !important;
+  text-align:right !important;
+}
+
+#newSetOverlay .facebuttons{
+  display:grid !important;
+  grid-template-columns:repeat(6,minmax(34px,1fr)) !important;
+  gap:5px !important;
+  margin:0 !important;
+}
+#newSetOverlay .facebuttons button{
+  min-width:0 !important;
+  width:100% !important;
+  height:54px !important;
+  padding:3px !important;
+  background:#fff !important;
+  color:#111 !important;
+  border:2px solid #d8dde3 !important;
+  border-radius:9px !important;
+  font-size:22px !important;
+}
+#newSetOverlay .left-config .facebuttons button.selected{
+  border:3px solid #1769c7 !important;
+  box-shadow:0 0 0 1px #1769c7 inset !important;
+}
+#newSetOverlay .right-config .facebuttons button.selected{
+  border:3px solid #d92722 !important;
+  box-shadow:0 0 0 1px #d92722 inset !important;
+}
+#newSetOverlay .face-preview{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:80px !important;
+  height:80px !important;
+  margin:0 !important;
+  background:#fff !important;
+  color:#111 !important;
+  border-radius:12px !important;
+  font-size:34px !important;
+}
+#newSetOverlay .left-config .face-preview .mini{
+  outline:3px solid #1769c7 !important;
+}
+#newSetOverlay .right-config .face-preview .mini{
+  outline:3px solid #d92722 !important;
+}
+#newSetOverlay #newSetPreview{display:none !important;}
+
+#newSetOverlay .newset-footer{
+  border-top:1px solid #d8dde3 !important;
+  padding:20px 24px 24px !important;
+  display:flex !important;
+  justify-content:center !important;
+  gap:20px !important;
+}
+#newSetOverlay .newset-footer button{
+  min-width:230px !important;
+  min-height:58px !important;
+  border-radius:10px !important;
+  font-size:18px !important;
+  font-weight:900 !important;
+  border:0 !important;
+}
+#newSetOverlay .newset-cancel{
+  background:#e8ebef !important;
+  color:#374151 !important;
+}
+#newSetOverlay .newset-footer .save-set{
+  background:#18a957 !important;
+  color:#fff !important;
+}
+@media(max-width:800px){
+  #newSetOverlay .newset-panel{width:100%;max-height:96vh;}
+  #newSetOverlay .entrybox{padding:18px 14px 20px !important;}
+  #newSetOverlay .entrytitle{font-size:20px !important;}
+  #newSetOverlay .left-row{grid-template-columns:42px minmax(0,1fr) 68px !important;}
+  #newSetOverlay .right-row{grid-template-columns:68px minmax(0,1fr) 42px !important;}
+  #newSetOverlay .facebuttons{gap:3px !important;}
+  #newSetOverlay .facebuttons button{height:42px !important;font-size:18px !important;}
+  #newSetOverlay .face-preview .mini{width:62px !important;height:62px !important;}
+  #newSetOverlay .newset-footer button{min-width:170px !important;}
+}
+
+/* ===== V33: fix Create New Dice Set row geometry ===== */
+#newSetOverlay .newset-panel{
+  width:min(1160px,96vw) !important;
+}
+#newSetOverlay .newset-dice{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+}
+#newSetOverlay .entrybox{
+  min-width:0 !important;
+  padding:28px 34px 30px !important;
+}
+#newSetOverlay .face-row{
+  width:100% !important;
+  box-sizing:border-box !important;
+  margin:22px 0 !important;
+  align-items:center !important;
+}
+#newSetOverlay .left-row{
+  grid-template-columns:58px minmax(0,1fr) 92px !important;
+}
+#newSetOverlay .right-row{
+  grid-template-columns:92px minmax(0,1fr) 58px !important;
+}
+#newSetOverlay .facebuttons{
+  width:100% !important;
+  min-width:0 !important;
+  grid-template-columns:repeat(6,minmax(34px,1fr)) !important;
+  gap:7px !important;
+}
+#newSetOverlay .facebuttons button{
+  width:100% !important;
+  min-width:34px !important;
+  height:54px !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+}
+#newSetOverlay .face-preview{
+  width:92px !important;
+  height:92px !important;
+  flex:0 0 92px !important;
+  box-sizing:border-box !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:82px !important;
+  height:82px !important;
+  flex:0 0 82px !important;
+  box-sizing:border-box !important;
+}
+#newSetOverlay .left-row .face-preview{
+  justify-self:end !important;
+}
+#newSetOverlay .right-row .face-preview{
+  justify-self:start !important;
+}
+#newSetOverlay .left-row .face-label{
+  padding-right:4px !important;
+}
+#newSetOverlay .right-row .face-label{
+  padding-left:4px !important;
+}
+
+/* Keep the right-side TOP/FRONT labels completely outside the face buttons. */
+#newSetOverlay .right-row .face-label{
+  white-space:nowrap !important;
+  overflow:visible !important;
+}
+
+/* Footer stays compact and centered like the reference. */
+#newSetOverlay .newset-footer{
+  min-height:96px !important;
+  box-sizing:border-box !important;
+  align-items:center !important;
+}
+
+/* ===== V34: exact row sizing for the approved mockup ===== */
+#newSetOverlay .newset-panel{
+  width:min(1160px,96vw) !important;
+}
+#newSetOverlay .newset-dice{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+}
+#newSetOverlay .entrybox{
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  padding:28px 24px 30px !important;
+  overflow:hidden !important;
+}
+#newSetOverlay .entrybox + .entrybox{
+  border-left:2px solid #d9dee5 !important;
+}
+
+/* One row = label + six small buttons + selected die.
+   Right side is mirrored. */
+#newSetOverlay .face-row,
+#newSetOverlay .left-row,
+#newSetOverlay .right-row{
+  display:grid !important;
+  align-items:center !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  gap:8px !important;
+  margin:22px 0 !important;
+}
+#newSetOverlay .left-row{
+  grid-template-columns:48px 228px 62px !important;
+  justify-content:start !important;
+}
+#newSetOverlay .right-row{
+  grid-template-columns:62px 228px 48px !important;
+  justify-content:start !important;
+}
+
+/* Selection field is six compact buttons, never allowed to expand. */
+#newSetOverlay .facebuttons{
+  width:228px !important;
+  min-width:228px !important;
+  max-width:228px !important;
+  display:grid !important;
+  grid-template-columns:repeat(6,36px) !important;
+  gap:2px !important;
+  margin:0 !important;
+}
+#newSetOverlay .facebuttons button{
+  width:36px !important;
+  min-width:36px !important;
+  max-width:36px !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+  border:2px solid #d8dde3 !important;
+  border-radius:8px !important;
+  background:#fff !important;
+  overflow:hidden !important;
+}
+#newSetOverlay .facebuttons button.selected{
+  border-width:3px !important;
+}
+#newSetOverlay .left-config .facebuttons button.selected{
+  border-color:#1769c7 !important;
+  box-shadow:0 0 0 1px #1769c7 inset !important;
+}
+#newSetOverlay .right-config .facebuttons button.selected{
+  border-color:#d92722 !important;
+  box-shadow:0 0 0 1px #d92722 inset !important;
+}
+
+/* Selected die is a true die, with visible black pips. */
+#newSetOverlay .face-preview{
+  width:62px !important;
+  height:62px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:62px !important;
+  height:62px !important;
+  margin:0 !important;
+  padding:7px !important;
+  box-sizing:border-box !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  grid-template-rows:repeat(3,1fr) !important;
+  place-items:center !important;
+  background:#fff !important;
+  border-radius:10px !important;
+}
+#newSetOverlay .face-preview .mini i{
+  width:11px !important;
+  height:11px !important;
+  background:#111 !important;
+  border-radius:50% !important;
+  display:block !important;
+}
+#newSetOverlay .left-config .face-preview .mini{
+  border:3px solid #1769c7 !important;
+  outline:none !important;
+}
+#newSetOverlay .right-config .face-preview .mini{
+  border:3px solid #d92722 !important;
+  outline:none !important;
+}
+
+/* Labels stay in their own columns. */
+#newSetOverlay .face-label{
+  position:static !important;
+  white-space:nowrap !important;
+  font-size:15px !important;
+  font-weight:900 !important;
+}
+#newSetOverlay .left-row .face-label{
+  color:#1769c7 !important;
+  text-align:left !important;
+}
+#newSetOverlay .right-row .face-label{
+  color:#d92722 !important;
+  text-align:right !important;
+}
+
+/* Keep footer entirely below the two die columns. */
+#newSetOverlay .newset-footer{
+  position:static !important;
+  clear:both !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:20px !important;
+  padding:20px 24px !important;
+}
+
+/* ===== V35: spacing/layout matched to approved mockup ===== */
+#newSetOverlay .newset-panel{
+  width:min(1240px,96vw) !important;
+  max-width:1240px !important;
+}
+#newSetOverlay .newset-dice{
+  grid-template-columns:1fr 1fr !important;
+  min-height:470px !important;
+}
+#newSetOverlay .entrybox{
+  padding:34px 38px 38px !important;
+}
+#newSetOverlay .entrytitle{
+  font-size:25px !important;
+  margin:0 0 34px !important;
+}
+#newSetOverlay .face-row{
+  margin:34px 0 !important;
+  gap:12px !important;
+  height:92px !important;
+}
+#newSetOverlay .left-row{
+  grid-template-columns:62px 282px 94px !important;
+}
+#newSetOverlay .right-row{
+  grid-template-columns:94px 282px 62px !important;
+}
+
+/* Exactly six evenly sized selection buttons. */
+#newSetOverlay .facebuttons{
+  width:282px !important;
+  min-width:282px !important;
+  max-width:282px !important;
+  grid-template-columns:repeat(6,42px) !important;
+  gap:5px !important;
+}
+#newSetOverlay .facebuttons button{
+  width:42px !important;
+  min-width:42px !important;
+  max-width:42px !important;
+  height:58px !important;
+  min-height:58px !important;
+  max-height:58px !important;
+  border-radius:9px !important;
+  font-size:22px !important;
+}
+
+/* Large selected dice sit in their own column and never overlap buttons. */
+#newSetOverlay .face-preview{
+  width:94px !important;
+  height:94px !important;
+  min-width:94px !important;
+  max-width:94px !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:88px !important;
+  height:88px !important;
+  min-width:88px !important;
+  max-width:88px !important;
+  min-height:88px !important;
+  max-height:88px !important;
+  border-radius:12px !important;
+}
+
+/* Keep labels outside the button strip. */
+#newSetOverlay .face-label{
+  font-size:17px !important;
+  line-height:1 !important;
+}
+#newSetOverlay .left-row .face-label{
+  text-align:left !important;
+}
+#newSetOverlay .right-row .face-label{
+  text-align:right !important;
+}
+
+/* More generous footer, matching the reference proportions. */
+#newSetOverlay .newset-footer{
+  min-height:112px !important;
+  padding:24px 34px !important;
+  gap:54px !important;
+}
+#newSetOverlay .newset-footer button{
+  min-width:330px !important;
+  height:62px !important;
+  font-size:19px !important;
+}
+
+/* ===== V36: compact spacing + hide session info behind popup ===== */
+
+/* The session information card belongs to the main screen, not this popup. */
+body:has(#newSetOverlay.open) .session-info-panel,
+body:has(#newSetOverlay[style*="display: flex"]) .session-info-panel{
+  display:none !important;
+}
+
+#newSetOverlay .newset-panel{
+  width:min(1120px,96vw) !important;
+  max-width:1120px !important;
+}
+#newSetOverlay .newset-dice{
+  min-height:420px !important;
+}
+#newSetOverlay .entrybox{
+  padding:30px 22px 26px !important;
+}
+#newSetOverlay .entrytitle{
+  margin:0 0 28px !important;
+  font-size:24px !important;
+}
+
+/* Compact, centered rows that fit entirely inside each half. */
+#newSetOverlay .face-row{
+  height:76px !important;
+  margin:24px 0 !important;
+  gap:7px !important;
+}
+#newSetOverlay .left-row{
+  grid-template-columns:50px 218px 74px !important;
+}
+#newSetOverlay .right-row{
+  grid-template-columns:74px 218px 50px !important;
+}
+
+/* Six buttons: all six must be visible without clipping. */
+#newSetOverlay .facebuttons{
+  width:218px !important;
+  min-width:218px !important;
+  max-width:218px !important;
+  grid-template-columns:repeat(6,34px) !important;
+  gap:2.8px !important;
+}
+#newSetOverlay .facebuttons button{
+  width:34px !important;
+  min-width:34px !important;
+  max-width:34px !important;
+  height:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+  border-radius:8px !important;
+}
+
+/* Smaller dedicated preview column. */
+#newSetOverlay .face-preview{
+  width:74px !important;
+  height:74px !important;
+  min-width:74px !important;
+  max-width:74px !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:72px !important;
+  height:72px !important;
+  min-width:72px !important;
+  max-width:72px !important;
+  min-height:72px !important;
+  max-height:72px !important;
+  border-radius:11px !important;
+}
+
+/* Keep the headings and row labels visually aligned. */
+#newSetOverlay .face-label{
+  font-size:16px !important;
+}
+#newSetOverlay .newset-footer{
+  min-height:96px !important;
+  padding:18px 26px !important;
+  gap:28px !important;
+}
+#newSetOverlay .newset-footer button{
+  min-width:300px !important;
+  height:58px !important;
+}
+
+/* ===== V37: move each TOP/FRONT row outward, away from center divider ===== */
+#newSetOverlay .newset-panel{
+  width:min(1120px,96vw) !important;
+}
+#newSetOverlay .newset-dice{
+  grid-template-columns:1fr 1fr !important;
+  min-height:420px !important;
+}
+#newSetOverlay .entrybox{
+  padding:30px 18px 28px !important;
+  overflow:hidden !important;
+}
+
+/* LEFT: label | choices | selected die, shifted toward the left half */
+#newSetOverlay .left-config .face-row{
+  grid-template-columns:58px 210px 76px !important;
+  width:344px !important;
+  margin-left:0 !important;
+  margin-right:auto !important;
+  gap:7px !important;
+}
+
+/* RIGHT: selected die | choices | label, shifted toward the right half */
+#newSetOverlay .right-config .face-row{
+  grid-template-columns:76px 210px 58px !important;
+  width:344px !important;
+  margin-left:auto !important;
+  margin-right:0 !important;
+  gap:7px !important;
+}
+
+/* Put the two rows at comfortable, consistent vertical positions. */
+#newSetOverlay .face-row{
+  height:72px !important;
+  margin-top:28px !important;
+  margin-bottom:28px !important;
+}
+
+/* Six compact choices stay together. */
+#newSetOverlay .facebuttons{
+  width:210px !important;
+  min-width:210px !important;
+  max-width:210px !important;
+  grid-template-columns:repeat(6,34px) !important;
+  gap:1.8px !important;
+}
+#newSetOverlay .facebuttons button{
+  width:34px !important;
+  min-width:34px !important;
+  max-width:34px !important;
+  height:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+}
+
+/* Preview dice are outside the button strip. */
+#newSetOverlay .face-preview{
+  width:76px !important;
+  height:76px !important;
+  min-width:76px !important;
+  max-width:76px !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:70px !important;
+  height:70px !important;
+  min-width:70px !important;
+  max-width:70px !important;
+  min-height:70px !important;
+  max-height:70px !important;
+}
+
+/* Headings sit farther from the center divider. */
+#newSetOverlay .left-config .entrytitle{
+  margin-left:0 !important;
+}
+#newSetOverlay .right-config .entrytitle{
+  margin-left:0 !important;
+}
+
+/* Keep the main screen's Session Info from appearing over this modal. */
+body:has(#newSetOverlay.open) .session-info-panel,
+body:has(#newSetOverlay[style*="display: flex"]) .session-info-panel{
+  display:none !important;
+}
+
+/* ===== V38: fixed-position Create New Dice Set rows ===== */
+#newSetOverlay .newset-panel{
+  width:min(1120px,96vw) !important;
+  max-width:1120px !important;
+}
+#newSetOverlay .newset-dice{
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important;
+  min-height:420px !important;
+}
+#newSetOverlay .entrybox{
+  position:relative !important;
+  box-sizing:border-box !important;
+  height:420px !important;
+  padding:0 !important;
+  overflow:hidden !important;
+}
+#newSetOverlay .entrytitle{
+  position:absolute !important;
+  top:66px !important;
+  margin:0 !important;
+  font-size:24px !important;
+  z-index:3 !important;
+}
+#newSetOverlay .left-config .entrytitle{left:20px !important;}
+#newSetOverlay .right-config .entrytitle{left:18px !important;}
+
+/* Each row is independently positioned. Nothing can reflow into the divider. */
+#newSetOverlay .face-row{
+  position:absolute !important;
+  height:76px !important;
+  margin:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:7px !important;
+  box-sizing:border-box !important;
+  z-index:2 !important;
+}
+#newSetOverlay .left-config .face-row{
+  left:18px !important;
+  width:425px !important;
+}
+#newSetOverlay .right-config .face-row{
+  left:18px !important;
+  width:425px !important;
+}
+#newSetOverlay .left-config .face-row:nth-of-type(2),
+#newSetOverlay .right-config .face-row:nth-of-type(2){
+  top:92px !important;
+}
+#newSetOverlay .left-config .face-row:nth-of-type(3),
+#newSetOverlay .right-config .face-row:nth-of-type(3){
+  top:270px !important;
+}
+
+/* Label, six buttons, and preview have fixed widths. */
+#newSetOverlay .left-row{
+  flex-direction:row !important;
+}
+#newSetOverlay .right-row{
+  flex-direction:row !important;
+}
+#newSetOverlay .left-row .face-label{
+  width:52px !important;
+  min-width:52px !important;
+  text-align:left !important;
+}
+#newSetOverlay .right-row .face-label{
+  width:52px !important;
+  min-width:52px !important;
+  text-align:right !important;
+}
+#newSetOverlay .facebuttons{
+  display:flex !important;
+  flex:0 0 210px !important;
+  width:210px !important;
+  min-width:210px !important;
+  max-width:210px !important;
+  gap:2px !important;
+}
+#newSetOverlay .facebuttons button{
+  flex:0 0 34px !important;
+  width:34px !important;
+  min-width:34px !important;
+  max-width:34px !important;
+  height:48px !important;
+  min-height:48px !important;
+  max-height:48px !important;
+  box-sizing:border-box !important;
+}
+#newSetOverlay .face-preview{
+  flex:0 0 76px !important;
+  width:76px !important;
+  min-width:76px !important;
+  max-width:76px !important;
+  height:76px !important;
+}
+#newSetOverlay .face-preview .mini{
+  width:70px !important;
+  height:70px !important;
+  min-width:70px !important;
+  max-width:70px !important;
+  min-height:70px !important;
+  max-height:70px !important;
+}
+
+/* Mirror the right side: red die, six choices, label. */
+#newSetOverlay .right-row .face-preview{order:1 !important;}
+#newSetOverlay .right-row .facebuttons{order:2 !important;}
+#newSetOverlay .right-row .face-label{order:3 !important;}
+
+/* Make the two rows visibly separated and centered vertically. */
+#newSetOverlay .left-config .face-row:nth-of-type(2),
+#newSetOverlay .right-config .face-row:nth-of-type(2){
+  top:94px !important;
+}
+#newSetOverlay .left-config .face-row:nth-of-type(3),
+#newSetOverlay .right-config .face-row:nth-of-type(3){
+  top:270px !important;
+}
+
+/* Footer remains outside the dice area. */
+#newSetOverlay .newset-footer{
+  position:relative !important;
+  z-index:5 !important;
+  min-height:96px !important;
+  padding:18px 26px !important;
+}
+
+/* Session information must never overlay the modal. */
+body:has(#newSetOverlay.open) .session-info-panel,
+body:has(#newSetOverlay[style*="display: flex"]) .session-info-panel{
+  display:none !important;
+}
+
+/* ===== V39: label positions from user's marked-up screenshot ===== */
+
+/* Keep LEFT labels clearly outside and vertically centered with their rows. */
+#newSetOverlay .left-config .face-row .face-label{
+  flex:0 0 58px !important;
+  width:58px !important;
+  min-width:58px !important;
+  max-width:58px !important;
+  text-align:left !important;
+  transform:translateX(-2px) !important;
+}
+
+/* RIGHT labels need a dedicated gap after the sixth button.
+   This is the main correction marked in red. */
+#newSetOverlay .right-config .face-row{
+  gap:0 !important;
+}
+#newSetOverlay .right-config .face-row .face-preview{
+  margin-right:7px !important;
+}
+#newSetOverlay .right-config .face-row .facebuttons{
+  margin-right:18px !important;
+}
+#newSetOverlay .right-config .face-row .face-label{
+  flex:0 0 58px !important;
+  width:58px !important;
+  min-width:58px !important;
+  max-width:58px !important;
+  text-align:left !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+  transform:none !important;
+}
+
+/* Give the rows a little more room so the labels never sit on the final
+   selection button. */
+#newSetOverlay .right-config .face-row{
+  width:425px !important;
+}
+
+/* ===== V40: TOP / FRONT labels centered above their six-choice fields ===== */
+
+/* Each row becomes a vertical mini-group:
+   label centered directly above the six face buttons.
+   The selected die remains beside the button field. */
+#newSetOverlay .face-row{
+  position:absolute !important;
+  display:flex !important;
+  align-items:flex-end !important;
+  gap:8px !important;
+  height:112px !important;
+}
+
+/* LEFT: centered label+buttons group, selected blue die on the right */
+#newSetOverlay .left-config .face-row{
+  left:12px !important;
+  width:420px !important;
+}
+#newSetOverlay .left-config .face-label{
+  position:absolute !important;
+  left:58px !important;
+  top:0 !important;
+  width:210px !important;
+  text-align:center !important;
+  transform:none !important;
+}
+#newSetOverlay .left-config .facebuttons{
+  position:absolute !important;
+  left:58px !important;
+  top:28px !important;
+}
+#newSetOverlay .left-config .face-preview{
+  position:absolute !important;
+  left:276px !important;
+  top:18px !important;
+}
+
+/* RIGHT: selected red die on the left, centered label+buttons group */
+#newSetOverlay .right-config .face-row{
+  left:12px !important;
+  width:420px !important;
+}
+#newSetOverlay .right-config .face-preview{
+  position:absolute !important;
+  left:0 !important;
+  top:18px !important;
+}
+#newSetOverlay .right-config .facebuttons{
+  position:absolute !important;
+  left:84px !important;
+  top:28px !important;
+}
+#newSetOverlay .right-config .face-label{
+  position:absolute !important;
+  left:84px !important;
+  top:0 !important;
+  width:210px !important;
+  text-align:center !important;
+  transform:none !important;
+}
+
+/* Keep TOP and FRONT evenly spaced vertically. */
+#newSetOverlay .left-config .face-row:nth-of-type(2),
+#newSetOverlay .right-config .face-row:nth-of-type(2){
+  top:92px !important;
+}
+#newSetOverlay .left-config .face-row:nth-of-type(3),
+#newSetOverlay .right-config .face-row:nth-of-type(3){
+  top:270px !important;
+}
+
+/* Labels are now intentionally above the selection strip. */
+#newSetOverlay .face-label{
+  z-index:5 !important;
+  white-space:nowrap !important;
+  font-size:16px !important;
+  line-height:20px !important;
+}
+
+/* ===== V41: larger real-die selection faces + red-line spacing ===== */
+
+/* Give the six selectable faces a larger physical-die appearance. */
+#newSetOverlay .facebuttons{
+  width:228px !important;
+  min-width:228px !important;
+  max-width:228px !important;
+  grid-template-columns:repeat(6,36px) !important;
+  gap:2.4px !important;
+}
+#newSetOverlay .facebuttons button{
+  width:36px !important;
+  min-width:36px !important;
+  max-width:36px !important;
+  height:50px !important;
+  min-height:50px !important;
+  max-height:50px !important;
+  border-radius:9px !important;
+  background:#fff !important;
+  border:1.5px solid #d7dce2 !important;
+  box-shadow:0 1px 2px rgba(0,0,0,.06) !important;
+  font-size:0 !important;
+  position:relative !important;
+}
+
+/* Replace the tiny "icon in a box" appearance with actual pip faces. */
+#newSetOverlay .facebuttons button::before{
+  content:'' !important;
+  position:absolute !important;
+  inset:7px !important;
+  background:
+    radial-gradient(circle at 50% 50%, #111 0 3px, transparent 3.4px) !important;
+  opacity:.98 !important;
+}
+
+/* Preserve the selected-face indication while keeping the face itself clean. */
+#newSetOverlay .facebuttons button.selected,
+#newSetOverlay .facebuttons button.active{
+  box-shadow:inset 0 0 0 2px currentColor, 0 1px 2px rgba(0,0,0,.06) !important;
+}
+
+/* Increase the preview dice slightly and make their pip faces read like dice. */
+#newSetOverlay .face-preview .mini{
+  width:78px !important;
+  height:78px !important;
+  min-width:78px !important;
+  max-width:78px !important;
+  min-height:78px !important;
+  max-height:78px !important;
+  border-radius:12px !important;
+  background:#fff !important;
+}
+
+/* Center the selection group under the TOP/FRONT headings, with the
+   selected die clearly separated to the outside as marked. */
+#newSetOverlay .left-config .facebuttons{
+  left:52px !important;
+}
+#newSetOverlay .left-config .face-label{
+  left:52px !important;
+  width:228px !important;
+}
+#newSetOverlay .left-config .face-preview{
+  left:288px !important;
+  top:16px !important;
+}
+
+#newSetOverlay .right-config .face-preview{
+  left:0 !important;
+  top:16px !important;
+}
+#newSetOverlay .right-config .facebuttons{
+  left:86px !important;
+}
+#newSetOverlay .right-config .face-label{
+  left:86px !important;
+  width:228px !important;
+}
+
+/* Keep the two rows comfortably separated vertically. */
+#newSetOverlay .left-config .face-row:nth-of-type(2),
+#newSetOverlay .right-config .face-row:nth-of-type(2){
+  top:90px !important;
+}
+#newSetOverlay .left-config .face-row:nth-of-type(3),
+#newSetOverlay .right-config .face-row:nth-of-type(3){
+  top:270px !important;
+}
+
+/* ===== V42: correct 1-6 pip faces in every selection button ===== */
+#newSetOverlay .facebuttons button{
+  position:relative !important;
+  font-size:0 !important;
+  background:#fff !important;
+  overflow:hidden !important;
+}
+
+/* Hide any old icon/text used by the button. */
+#newSetOverlay .facebuttons button > *{
+  visibility:hidden !important;
+}
+
+/* Six real pip positions inside each selectable die face. */
+#newSetOverlay .facebuttons button::before,
+#newSetOverlay .facebuttons button::after{
+  content:"" !important;
+  position:absolute !important;
+  width:6px !important;
+  height:6px !important;
+  border-radius:50% !important;
+  background:#111 !important;
+  box-shadow:none !important;
+}
+
+/* Default = one pip. */
+#newSetOverlay .facebuttons button::before{
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+}
+#newSetOverlay .facebuttons button::after{
+  display:none !important;
+}
+
+/* Use an inset shadow on the button itself for the remaining pip positions.
+   The selected state still comes from the button border. */
+#newSetOverlay .facebuttons button:nth-child(2)::before{
+  left:27% !important; top:27% !important; transform:none !important;
+}
+#newSetOverlay .facebuttons button:nth-child(2)::after{
+  display:block !important; left:auto !important; top:auto !important;
+  right:27% !important; bottom:27% !important;
+}
+#newSetOverlay .facebuttons button:nth-child(3)::before{
+  left:27% !important; top:27% !important; transform:none !important;
+}
+#newSetOverlay .facebuttons button:nth-child(3)::after{
+  display:block !important; left:50% !important; top:50% !important;
+  right:auto !important; bottom:auto !important; transform:translate(-50%,-50%) !important;
+}
+#newSetOverlay .facebuttons button:nth-child(3){
+  box-shadow:inset 0 0 0 0 transparent !important;
+}
+#newSetOverlay .facebuttons button:nth-child(4)::before{
+  left:27% !important; top:27% !important; transform:none !important;
+  box-shadow:26px 0 #111 !important;
+}
+#newSetOverlay .facebuttons button:nth-child(4)::after{
+  display:block !important; left:27% !important; top:auto !important;
+  right:auto !important; bottom:27% !important;
+  box-shadow:26px 0 #111 !important;
+}
+#newSetOverlay .facebuttons button:nth-child(5)::before{
+  left:27% !important; top:27% !important; transform:none !important;
+  box-shadow:26px 0 #111, 13px 13px #111 !important;
+}
+#newSetOverlay .facebuttons button:nth-child(5)::after{
+  display:block !important; left:27% !important; top:auto !important;
+  right:auto !important; bottom:27% !important;
+  box-shadow:26px 0 #111 !important;
+}
+#newSetOverlay .facebuttons button:nth-child(6)::before{
+  left:27% !important; top:27% !important; transform:none !important;
+  box-shadow:26px 0 #111, 0 26px #111, 26px 26px #111 !important;
+}
+#newSetOverlay .facebuttons button:nth-child(6)::after{
+  display:block !important; left:27% !important; top:auto !important;
+  right:auto !important; bottom:27% !important;
+  box-shadow:26px 0 #111 !important;
+}
+
+/* ===== V43: evenly spaced pips ===== */
+#newSetOverlay .facebuttons button{
+  position:relative !important;
+  font-size:0 !important;
+  overflow:hidden !important;
+}
+#newSetOverlay .facebuttons button::before,
+#newSetOverlay .facebuttons button::after{
+  content:none !important;
+}
+#newSetOverlay .facebuttons button .pip-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3,6px) !important;
+  grid-template-rows:repeat(3,6px) !important;
+  justify-content:space-between !important;
+  align-content:space-between !important;
+  width:24px !important;
+  height:30px !important;
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+}
+#newSetOverlay .facebuttons button .pip{
+  width:6px !important;
+  height:6px !important;
+  border-radius:50% !important;
+  background:#111 !important;
+}
+
+/* ===== V44: approved clean layout / solid selected faces ===== */
+
+/* Keep ALL six selection buttons white with black outlines. */
+#newSetOverlay .facebuttons button{
+  background:#fff !important;
+  border:2px solid #111 !important;
+  color:#111 !important;
+}
+
+/* Selected LEFT/BLUE choice becomes a solid blue die. */
+#newSetOverlay .left-config .facebuttons button.selected,
+#newSetOverlay .left-config .facebuttons button.active{
+  background:#1769d1 !important;
+  border-color:#1769d1 !important;
+  color:#fff !important;
+}
+
+/* Selected RIGHT/RED choice becomes a solid red die. */
+#newSetOverlay .right-config .facebuttons button.selected,
+#newSetOverlay .right-config .facebuttons button.active{
+  background:#e52b2b !important;
+  border-color:#e52b2b !important;
+  color:#fff !important;
+}
+
+/* Make the pips on selected faces white; unselected stay black. */
+#newSetOverlay .left-config .facebuttons button.selected .pip,
+#newSetOverlay .left-config .facebuttons button.active .pip,
+#newSetOverlay .right-config .facebuttons button.selected .pip,
+#newSetOverlay .right-config .facebuttons button.active .pip{
+  background:#fff !important;
+}
+
+/* Larger, clean selection tiles filling their available row. */
+#newSetOverlay .facebuttons{
+  width:276px !important;
+  min-width:276px !important;
+  max-width:276px !important;
+  grid-template-columns:repeat(6,42px) !important;
+  gap:4px !important;
+}
+#newSetOverlay .facebuttons button{
+  width:42px !important;
+  height:58px !important;
+  min-width:42px !important;
+  min-height:58px !important;
+  border-radius:9px !important;
+}
+
+/* Preserve the approved side-by-side relationship:
+   LEFT: selections -> blue selected die
+   RIGHT: red selected die -> selections */
+#newSetOverlay .left-config .facebuttons{
+  left:42px !important;
+}
+#newSetOverlay .left-config .face-label{
+  left:42px !important;
+  width:276px !important;
+}
+#newSetOverlay .left-config .face-preview{
+  left:326px !important;
+}
+#newSetOverlay .right-config .face-preview{
+  left:0 !important;
+}
+#newSetOverlay .right-config .facebuttons{
+  left:88px !important;
+}
+#newSetOverlay .right-config .face-label{
+  left:88px !important;
+  width:276px !important;
+}
+
+/* Keep the two rows balanced. */
+#newSetOverlay .left-config .face-row:nth-of-type(2),
+#newSetOverlay .right-config .face-row:nth-of-type(2){
+  top:90px !important;
+}
+#newSetOverlay .left-config .face-row:nth-of-type(3),
+#newSetOverlay .right-config .face-row:nth-of-type(3){
+  top:272px !important;
+}
+
+/* ===== V45: selected large preview dice are solid BLUE/RED ===== */
+
+/* Large LEFT/BLUE preview dice */
+#newSetOverlay .left-config .face-preview,
+#newSetOverlay .left-config .face-preview .mini{
+  background:#1769d1 !important;
+  border-color:#1769d1 !important;
+  color:#fff !important;
+}
+
+/* Large RIGHT/RED preview dice */
+#newSetOverlay .right-config .face-preview,
+#newSetOverlay .right-config .face-preview .mini{
+  background:#e52b2b !important;
+  border-color:#e52b2b !important;
+  color:#fff !important;
+}
+
+/* Preview pips become white against the solid colored die. */
+#newSetOverlay .left-config .face-preview .pip,
+#newSetOverlay .right-config .face-preview .pip{
+  background:#fff !important;
+}
+
+/* If the preview uses pseudo-element pips, make those white too. */
+#newSetOverlay .left-config .face-preview::before,
+#newSetOverlay .left-config .face-preview::after,
+#newSetOverlay .right-config .face-preview::before,
+#newSetOverlay .right-config .face-preview::after{
+  background:#fff !important;
+  color:#fff !important;
+}
+
+/* ===== V46: Select Dice Set popup — colored real dice, vertical TOP/FRONT ===== */
+#setOverlay .panelhead .small,
+.dice-set-modal .panelhead .small,
+.dice-set-picker .panelhead .small{
+  display:none !important;
+}
+
+#setOverlay .setlist,
+.dice-set-modal .setlist,
+.dice-set-picker .setlist{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px !important;
+  padding:8px !important;
+}
+
+#setOverlay .setbtn,
+.dice-set-modal .setbtn,
+.dice-set-picker .setbtn{
+  min-height:112px !important;
+  padding:12px 18px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  background:#10151d !important;
+  color:#fff !important;
+  border:2px solid #303947 !important;
+  border-radius:14px !important;
+  box-sizing:border-box !important;
+}
+
+#setOverlay .setbtn.active,
+.dice-set-modal .setbtn.active,
+.dice-set-picker .setbtn.active{
+  border-color:#1677ff !important;
+  box-shadow:0 0 0 1px #1677ff inset !important;
+}
+
+.set-face-layout{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:7px !important;
+  width:100% !important;
+}
+.set-face-row{
+  display:grid !important;
+  grid-template-columns:76px 62px 62px !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+.set-face-label{
+  color:#fff !important;
+  font-size:16px !important;
+  font-weight:800 !important;
+  text-align:right !important;
+  letter-spacing:.4px !important;
+}
+
+#setOverlay .setbtn .mini,
+.dice-set-modal .setbtn .mini,
+.dice-set-picker .setbtn .mini{
+  width:56px !important;
+  height:44px !important;
+  border-radius:9px !important;
+  padding:6px !important;
+  border:2px solid currentColor !important;
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  grid-template-rows:repeat(3,1fr) !important;
+  place-items:center !important;
+  box-sizing:border-box !important;
+}
+#setOverlay .setbtn .mini i,
+.dice-set-modal .setbtn .mini i,
+.dice-set-picker .setbtn .mini i{
+  width:7px !important;
+  height:7px !important;
+  border-radius:50% !important;
+  background:#fff !important;
+}
+#setOverlay .setbtn .mini.blue,
+.dice-set-modal .setbtn .mini.blue,
+.dice-set-picker .setbtn .mini.blue{
+  background:#1769d1 !important;
+  color:#1769d1 !important;
+}
+#setOverlay .setbtn .mini.red,
+.dice-set-modal .setbtn .mini.red,
+.dice-set-picker .setbtn .mini.red{
+  background:#e52b2b !important;
+  color:#e52b2b !important;
+}
+
+#setOverlay .newset,
+.dice-set-modal .newset,
+.dice-set-picker .newset{
+  margin:8px !important;
+  min-height:54px !important;
+}
+
+/* Keep the main screen untouched; these rules target only the set picker. */
+
+/* ===== V47: restore Select Dice Set popup opening ===== */
+#setOverlay{
+  display:none;
+}
+#setOverlay.open{
+  display:flex !important;
+}
+
+/* Make the entire current-dice-set card reliably clickable. */
+.set-picker .set-current{
+  cursor:pointer !important;
+}
+
+/* ===== V50: preserve Session Info after New Session ===== */
+#sessionInfo,
+.session-info,
+.session-info-panel{
+  display:block !important;
+}
+
+/* ===== V52: remove the redundant session box under New Session ===== */
+#sessionInfo,
+.session-info,
+.session-info-panel{
+  display:none !important;
+}
+
+/* ===== V53: remove the actual SESSION card under New Session ===== */
+.sessionline,
+.sessionline .sessioncard{
+  display:none !important;
+}
+
+/* ===== V54: Session Summary button + popup ===== */
+.summary-btn{
+  width:100%;
+  margin-top:8px;
+  padding:11px 14px;
+  border:1px solid #0f7d3b;
+  border-radius:10px;
+  background:linear-gradient(#1fc05d,#159447);
+  color:#fff;
+  font-weight:800;
+  font-size:15px;
+  box-shadow:0 3px 0 #0b6b32, 0 5px 8px rgba(0,0,0,.18);
+  cursor:pointer;
+  text-shadow:0 1px 1px rgba(0,0,0,.2);
+}
+.summary-btn:active{
+  transform:translateY(2px);
+  box-shadow:0 1px 0 #0b6b32, 0 2px 4px rgba(0,0,0,.15);
+}
+.summary-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(12,17,23,.62);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+.summary-overlay.open{display:flex}
+.summary-panel{
+  width:min(520px,92vw);
+  background:#fff;
+  border-radius:16px;
+  border:1px solid #cfd5dd;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+  overflow:hidden;
+}
+.summary-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid #d8dde4;
+}
+.summary-head b{
+  font-size:21px;
+  color:#18212b;
+}
+.summary-close{
+  border:0;
+  background:transparent;
+  color:#17324d;
+  font-size:28px;
+  cursor:pointer;
+}
+.summary-body{
+  padding:18px 20px 20px;
+}
+.summary-set{
+  color:#5d6a78;
+  font-size:13px;
+  margin-bottom:14px;
+}
+.summary-stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.summary-stat{
+  border:1px solid #d6dce3;
+  border-radius:10px;
+  padding:12px;
+  background:#f7f9fb;
+}
+.summary-stat .k{
+  color:#697684;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.summary-stat .v{
+  color:#17212b;
+  font-size:24px;
+  font-weight:800;
+}
+.summary-last{
+  margin-top:12px;
+  border:1px solid #d6dce3;
+  border-radius:10px;
+  padding:12px;
+  background:#fff;
+}
+.summary-last .k{
+  color:#697684;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+.summary-last .v{
+  margin-top:4px;
+  font-size:18px;
+  font-weight:800;
+}
+.summary-footer{
+  padding:0 20px 18px;
+}
+.summary-ok{
+  width:100%;
+  padding:11px;
+  border:0;
+  border-radius:9px;
+  background:linear-gradient(#1fc05d,#159447);
+  color:#fff;
+  font-weight:800;
+  font-size:15px;
+  box-shadow:0 3px 0 #0b6b32;
+  cursor:pointer;
+}
+
+/* ===== V55 approved dashboard layout ===== */
+#selectedSetText{
+  display:none !important;
+}
+
+.top-actions{
+  grid-template-columns:1fr !important;
+}
+
+.bottom-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:14px;
+  padding:14px 18px 18px;
+  width:100%;
+  box-sizing:border-box;
+}
+.bottom-actions button{
+  min-width:190px;
+  min-height:52px;
+  border-radius:11px;
+  border:1px solid #0b7135;
+  color:#fff;
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:.1px;
+  cursor:pointer;
+  background:linear-gradient(#20c25d 0%,#18a64d 52%,#11823b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 3px 0 #08642e,
+    0 6px 10px rgba(0,0,0,.20);
+  text-shadow:0 1px 1px rgba(0,0,0,.22);
+}
+.bottom-actions button:hover{
+  filter:brightness(1.04);
+}
+.bottom-actions button:active{
+  transform:translateY(3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.20),
+    0 1px 0 #08642e,
+    0 3px 5px rgba(0,0,0,.16);
+}
+
+/* New Session uses the same physical 3D green-button treatment. */
+.top-actions .primary{
+  min-height:52px !important;
+  border-radius:11px !important;
+  border:1px solid #0b7135 !important;
+  background:linear-gradient(#20c25d 0%,#18a64d 52%,#11823b 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 3px 0 #08642e,
+    0 6px 10px rgba(0,0,0,.20) !important;
+  text-shadow:0 1px 1px rgba(0,0,0,.22);
+}
+
+/* Current dice set: physical-looking colored dice, blue left / red right. */
+.stacked-dice{
+  justify-content:space-between !important;
+  gap:24px !important;
+}
+.dice-stack{
+  flex:1 1 0 !important;
+  min-width:0 !important;
+}
+.dice-stack .mini{
+  width:88px !important;
+  height:88px !important;
+  background:#1769c7 !important;
+  border:1px solid #0f56ad !important;
+  border-radius:14px !important;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.18),0 3px 5px rgba(0,0,0,.20) !important;
+}
+.dice-stack .mini.red{
+  background:#d92722 !important;
+  border-color:#c51f1a !important;
+}
+.dice-stack .mini.blue{
+  background:#1769c7 !important;
+  border-color:#0f56ad !important;
+}
+.dice-stack .mini i{
+  background:#fff !important;
+  border-radius:50% !important;
+  width:14px !important;
+  height:14px !important;
+}
+
+/* The result area is intentionally empty at the beginning of a session. */
+#infoLastRoll:empty{
+  display:none;
+}
+
+@media(max-width:800px){
+  .bottom-actions{
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .bottom-actions button{
+    min-width:0;
+    flex:1 1 30%;
+  }
+}
+
+/* ===== V60 CLEAN LAYOUT ===== */
+.session-info-card{
+  display:block !important;
+  width:100% !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+  position:static !important;
+  overflow:hidden !important;
+}
+.session-info-grid{
+  display:grid !important;
+  grid-template-columns:1fr auto !important;
+  gap:7px 12px !important;
+  align-items:center !important;
+  margin-top:9px !important;
+}
+.session-info-grid > div{
+  color:#697684 !important;
+  font-size:11px !important;
+  font-weight:700 !important;
+  text-transform:uppercase !important;
+}
+.session-info-grid > strong{
+  color:#18212b !important;
+  font-size:14px !important;
+  text-align:right !important;
+}
+.session-summary-in-info{
+  width:100% !important;
+  margin-top:11px !important;
+}
+.bottom-actions{
+  display:flex !important;
+  justify-content:flex-end !important;
+  align-items:center !important;
+  gap:14px !important;
+  padding:14px 18px 18px !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+}
+.bottom-actions .export{
+  min-width:190px !important;
+  min-height:52px !important;
+}
+.entrytitle{
+  font-weight:800 !important;
+}
+
+/* V60 compatibility: sessionName was removed from the visible UI. */
+#selectedSetText{display:none !important;}
+/* ===== V61: results in white space to right of Session Info ===== */
+.v7top{
+  display:grid !important;
+  grid-template-columns:280px minmax(0,1fr) !important;
+  gap:14px !important;
+  align-items:start !important;
+}
+.top-left-stack{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:10px !important;
+}
+.top-grid-slot{
+  min-width:0 !important;
+}
+.main-results-panel{
+  width:100% !important;
+  margin-top:12px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:8px !important;
+  box-sizing:border-box !important;
+}
+.main-results-panel .result-row{
+  width:100% !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  min-height:88px !important;
+  padding:8px 14px !important;
+  border:1px solid #d8dde5 !important;
+  border-radius:12px !important;
+  background:#fff !important;
+}
+.main-results-panel .entrytitle{
+  flex:0 0 180px !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+  text-align:left !important;
+  white-space:nowrap !important;
+}
+.main-results-panel .result-dice,
+.main-results-panel .dice-results,
+.main-results-panel .dice-row{
+  flex:1 !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+.main-results-panel .result-dice button,
+.main-results-panel .dice-results button,
+.main-results-panel .dice-row button{
+  flex:0 0 auto !important;
+}
+.bottom-actions{
+  width:100% !important;
+  display:flex !important;
+  justify-content:flex-end !important;
+  align-items:center !important;
+  gap:14px !important;
+  padding:14px 18px 18px !important;
+  box-sizing:border-box !important;
+}
+.bottom-actions .undo,
+.bottom-actions .export{
+  min-width:190px !important;
+  min-height:52px !important;
+  border-radius:12px !important;
+  box-shadow:0 4px 0 rgba(0,0,0,.22),0 5px 10px rgba(0,0,0,.14) !important;
+}
+
+/* ===== V62 ===== */
+.main-results-panel .result-row{
+  display:none !important;
+}
+.main-results-panel.has-results .result-row{
+  display:flex !important;
+}
+.main-results-panel{
+  min-height:0 !important;
+}
+
+/* ===== V63: results directly under 6x6 grid ===== */
+.main-results-panel{
+  width:100% !important;
+  margin:14px 0 0 !important;
+  display:none !important;
+  flex-direction:column !important;
+  gap:8px !important;
+  box-sizing:border-box !important;
+}
+.main-results-panel.has-results{
+  display:flex !important;
+}
+.main-results-panel .entrybox{
+  width:100% !important;
+  min-height:88px !important;
+  box-sizing:border-box !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:8px 14px !important;
+  background:#fff !important;
+  border:1px solid #d8dde5 !important;
+  border-radius:12px !important;
+}
+.main-results-panel .diebuttons{
+  width:100% !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  gap:10px !important;
+}
+
+/* ===== V64: Session Summary displays inside Session Info ===== */
+.session-info-card{
+  padding:12px !important;
+}
+.session-summary-display{
+  min-height:34px !important;
+  margin:8px 0 10px !important;
+  padding:0 !important;
+}
+.session-summary-display .session-empty{
+  color:#7a8794 !important;
+  font-size:12px !important;
+  text-align:center !important;
+  padding:7px 2px !important;
+}
+.session-summary-display.showing{
+  display:block !important;
+}
+.session-summary-display .summary-line{
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+  padding:3px 0 !important;
+  font-size:11px !important;
+}
+.session-summary-display .summary-line span{
+  color:#697684 !important;
+  font-weight:700 !important;
+}
+.session-summary-display .summary-line strong{
+  color:#18212b !important;
+  font-size:13px !important;
+}
+
+/* ===== V65: always-visible complete Session Info ===== */
+.session-info-card{
+  padding:12px !important;
+}
+.session-summary-display{
+  display:block !important;
+  min-height:0 !important;
+  margin:8px 0 0 !important;
+}
+.session-summary-display .summary-line{
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+  padding:4px 0 !important;
+  font-size:11px !important;
+}
+.session-summary-display .summary-line span{
+  color:#697684 !important;
+  font-weight:700 !important;
+}
+.session-summary-display .summary-line strong{
+  color:#18212b !important;
+  font-size:13px !important;
+}
+
+/* ===== V66: keep 6x6 grid in upper-right ===== */
+.v7top{
+  display:grid !important;
+  grid-template-columns:280px minmax(0,1fr) !important;
+  gap:14px !important;
+  align-items:start !important;
+}
+.top-left-stack{
+  grid-column:1 !important;
+  grid-row:1 !important;
+}
+.top-grid-slot{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  align-self:start !important;
+  min-width:0 !important;
+  margin:0 !important;
+}
+.top-grid-slot .gridwrap{
+  width:100% !important;
+  margin:0 !important;
+}
+.main-results-panel{
+  margin-top:14px !important;
+  width:100% !important;
+}
+
+/* ===== V67: hard-fix 6x6 grid to upper-right ===== */
+.v7top{
+  position:relative !important;
+  display:grid !important;
+  grid-template-columns:280px minmax(0,1fr) !important;
+  grid-template-rows:auto !important;
+  grid-auto-flow:row !important;
+  gap:14px !important;
+  align-items:start !important;
+  width:100% !important;
+}
+.v7top > .top-left-stack{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  position:static !important;
+  order:0 !important;
+  width:auto !important;
+}
+.v7top > .top-grid-slot{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  position:static !important;
+  order:0 !important;
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+  align-self:start !important;
+  justify-self:stretch !important;
+  margin:0 !important;
+}
+.v7top > .top-grid-slot .gridwrap{
+  display:block !important;
+  position:static !important;
+  width:100% !important;
+  height:auto !important;
+  margin:0 !important;
+}
+.v7top > .top-grid-slot .grid{
+  position:static !important;
+  margin:0 auto !important;
+}
+@media(max-width:800px){
+  .v7top{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    grid-template-rows:auto auto !important;
+  }
+  .v7top > .top-left-stack{
+    grid-column:1 !important;
+    grid-row:1 !important;
+  }
+  .v7top > .top-grid-slot{
+    grid-column:1 !important;
+    grid-row:2 !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="v7top">
+  <div class="top-left-stack">
+    <div class="top-actions">
+      <button class="primary" onclick="newSession()">New Session</button>
+    </div>
+
+    <div class="card set-picker">
+      <button class="set-current" id="setCurrentButton" onclick="openSetPicker()"
+        style="background:none;border:0;color:white;text-align:left;padding:0;width:100%">
+        <div class="label">CURRENT DICE SET</div>
+        <div class="dicepair stacked-dice" id="selectedSetVisual"></div>
+        <div class="small" id="selectedSetText" aria-hidden="true"></div>
+      </button>
+    </div>
+
+    <div class="card session-info-card">
+      <div class="label">SESSION INFO
+<div style="font-size:12px;color:#777;text-align:center;margin-top:10px;">Version 70</div></div>
+      <div id="sessionSummaryDisplay" class="session-summary-display showing">
+        <div class="summary-line"><span>DATE</span><strong id="infoDate">—</strong></div>
+        <div class="summary-line"><span>START TIME</span><strong id="infoStartTime">—</strong></div>
+        <div class="summary-line"><span>LAST ROLL</span><strong id="infoLastRoll">—</strong></div>
+        <div class="summary-line"><span>TOTAL ROLLS</span><strong id="infoTotalRolls">0</strong></div>
+        <div class="summary-line"><span>7s</span><strong id="infoSevens">0</strong></div>
+        <div class="summary-line"><span>OUTSIDE</span><strong id="infoOutside">0</strong></div>
+        <div class="summary-line"><span>HARDWAYS</span><strong id="infoHardways">0</strong></div>
+      </div>
+      </div>
+    </div>
+    <div class="center">
+    </div>
+  </div>
+
+  <div class="top-grid-slot">
+    <div class="gridwrap">
+      <div class="grid" id="grid"></div>
+      <div class="legend">6×6 result counts • 🔵 Left rows × 🔴 Right columns</div>
+    
+<div class="entry main-results-panel">
+  <div class="entrybox">
+    
+    <div class="diebuttons" id="rightButtons"></div>
+  </div>
+  <div class="entrybox">
+    
+    <div class="diebuttons" id="leftButtons"></div>
+  </div>
+</div>
+  </div>
+</header>
+
+
+<div class="summary-overlay" id="summaryOverlay" onclick="closeSummary(event)">
+  <div class="summary-panel" onclick="event.stopPropagation()">
+    <div class="summary-head">
+      <b>SESSION SUMMARY</b>
+      <button class="summary-close" onclick="closeSummary()">×</button>
+    </div>
+    <div class="summary-body">
+      <div class="summary-set" id="summarySet"></div>
+      <div class="summary-stats">
+        <div class="summary-stat"><div class="k">Total Rolls</div><div class="v" id="summaryRolls">0</div></div>
+        <div class="summary-stat"><div class="k">7s</div><div class="v" id="summarySevens">0</div></div>
+        <div class="summary-stat"><div class="k">Outside</div><div class="v" id="summaryOutside">0</div></div>
+        <div class="summary-stat"><div class="k">Hardways</div><div class="v" id="summaryHardways">0</div></div>
+      </div>
+      <div class="summary-last">
+        <div class="k">Last Roll</div>
+        <div class="v" id="summaryLast">—</div>
+      </div>
+    </div>
+    <div class="summary-footer">
+      <button class="summary-ok" onclick="closeSummary()">DONE</button>
+    </div>
+  </div>
+</div>
+
+<div class="set-overlay" id="setOverlay" onclick="closeSetPicker(event)">
+  <div class="set-panel" onclick="event.stopPropagation()">
+    <div class="panelhead"><div><b>Select Dice Set</b><div class="small">Top / Front faces</div></div>
+      <button class="closebtn" onclick="closeSetPicker()">✕</button></div>
+    <div class="setlist" id="setList"></div>
+    <button class="newset" onclick="openNewSet()">＋ Create New Dice Set</button>
+  </div>
+</div>
+<div class="newset-overlay" id="newSetOverlay">
+  <div class="newset-panel">
+    <div class="panelhead">
+      <div class="newset-heading">
+        <b>CREATE NEW DICE SET</b>
+        <div class="newset-subtitle">Choose Top and Front for each die</div>
+      </div>
+      <button class="closebtn" onclick="closeNewSet()">✕</button>
+    </div>
+
+    <div class="newset-dice">
+      <div class="entrybox left-config">
+        
+
+        <div class="face-row left-row">
+          <div class="face-label">TOP</div>
+          <div class="facebuttons" id="newLeftTop"></div>
+          <div class="face-preview" id="previewLeftTop"></div>
+        </div>
+
+        <div class="face-row left-row">
+          <div class="face-label">FRONT</div>
+          <div class="facebuttons" id="newLeftFront"></div>
+          <div class="face-preview" id="previewLeftFront"></div>
+        </div>
+      </div>
+
+      <div class="entrybox right-config">
+        
+
+        <div class="face-row right-row">
+          <div class="face-preview" id="previewRightTop"></div>
+          <div class="facebuttons" id="newRightTop"></div>
+          <div class="face-label">TOP</div>
+        </div>
+
+        <div class="face-row right-row">
+          <div class="face-preview" id="previewRightFront"></div>
+          <div class="facebuttons" id="newRightFront"></div>
+          <div class="face-label">FRONT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="newset-footer">
+      <button class="newset-cancel" onclick="closeNewSet()">✕&nbsp;&nbsp; CANCEL</button>
+      <button class="save-set" onclick="saveNewSet()">▣&nbsp;&nbsp; SAVE SET</button>
+    </div>
+  </div>
+</div></div>
+
+
+
+  
+</div></div>
+</div>
+
+<div class="bottom-actions">
+  <button class="undo" onclick="undo()">↩ Undo Last Entry</button>
+  <button class="export" onclick="exportCSV()">☁&nbsp;&nbsp; Export</button>
+</div>
+
+
+<script>
+(function(){
+  function syncResultVisibility(){
+    const panel=document.querySelector('.main-results-panel');
+    if(!panel) return;
+    const hasData = Array.from(document.querySelectorAll('#grid td, #grid .cell, #grid [data-count]'))
+      .some(el => {
+        const n=parseInt((el.textContent||'').trim(),10);
+        return Number.isFinite(n) && n>0;
+      });
+    panel.classList.toggle('has-results', hasData);
+  }
+  window.syncResultVisibility = syncResultVisibility;
+  document.addEventListener('DOMContentLoaded', syncResultVisibility);
+})();
+</script>
+
+<script>
+/* Remember the selected dice set for the next visit. */
+const LAST_SET_KEY="diceTracker.lastSelectedSet";
+function rememberLastSet(id){
+  try{ localStorage.setItem(LAST_SET_KEY, String(id)); }catch(e){}
+}
+function getLastSet(){
+  try{ return localStorage.getItem(LAST_SET_KEY); }catch(e){ return null; }
+}
+
+
+const pip=["","⚀","⚁","⚂","⚃","⚄","⚅"];
+let sets=[
+ {topL:5,frontL:2,topR:4,frontR:6},
+ {topL:3,frontL:2,topR:5,frontR:1},
+ {topL:4,frontL:5,topR:1,frontR:3},
+ {topL:6,frontL:3,topR:2,frontR:4},
+ {topL:1,frontL:4,topR:6,frontR:2}
+];
+let selectedSet=0,left=null,right=null,history=[],counts=Array.from({length:6},()=>Array(6).fill(0));
+
+function dieFace(n){
+  const pos = {
+    1:[[2,2]],
+    2:[[1,1],[3,3]],
+    3:[[1,1],[2,2],[3,3]],
+    4:[[1,1],[1,3],[3,1],[3,3]],
+    5:[[1,1],[1,3],[2,2],[3,1],[3,3]],
+    6:[[1,1],[2,1],[3,1],[1,3],[2,3],[3,3]]
+  }[n] || [];
+  return pos.map(([r,c])=>`<i style="grid-row:${r};grid-column:${c}"></i>`).join("");
+}
+function mini(n,c){
+  const pos = {
+    1:[[2,2]],
+    2:[[1,1],[3,3]],
+    3:[[1,1],[2,2],[3,3]],
+    4:[[1,1],[1,3],[3,1],[3,3]],
+    5:[[1,1],[1,3],[2,2],[3,1],[3,3]],
+    6:[[1,1],[2,1],[3,1],[1,3],[2,3],[3,3]]
+  }[n] || [];
+  return `<div class="mini ${c}">${pos.map(([r,col])=>`<i style="grid-row:${r};grid-column:${col}"></i>`).join("")}</div>`;
+}
+function setText(s){return `L ${s.topL}/${s.frontL} • R ${s.topR}/${s.frontR}`}
+
+function renderSets(){
+ const list=document.getElementById("setList");
+ list.innerHTML=sets.map((s,i)=>`<button class="setbtn ${i===selectedSet?"active":""}" onclick="chooseSet(${i})">
+   <div class="set-face-layout">
+     <div class="set-face-row">
+       <span class="set-face-label">TOP</span>
+       ${mini(s.topL,"blue")}${mini(s.topR,"red")}
+     </div>
+     <div class="set-face-row">
+       <span class="set-face-label">FRONT</span>
+       ${mini(s.frontL,"blue")}${mini(s.frontR,"red")}
+     </div>
+   </div>
+ </button>`).join("");
+ let s=sets[selectedSet];
+ document.getElementById("selectedSetVisual").innerHTML=
+   `<div class="dice-stack"><span class="stack-label blue-label">LEFT / BLUE</span>${mini(s.topL,"blue")}${mini(s.frontL,"blue")}</div>
+    <div class="dice-stack"><span class="stack-label red-label">RIGHT / RED</span>${mini(s.topR,"red")}${mini(s.frontR,"red")}</div>`;
+ document.getElementById("selectedSetText").textContent=setText(s);
+}
+function chooseSet(i){
+ selectedSet=i;left=right=null;history=[];counts=Array.from({length:6},()=>Array(6).fill(0));
+ if(document.getElementById("sessionName")) document.getElementById("sessionName").textContent="New Session";
+ render();closeSetPicker();
+}
+let newSet={topL:5,frontL:2,topR:4,frontR:6};
+function faceButtons(id,color,key){
+ document.getElementById(id).innerHTML=[1,2,3,4,5,6].map(n=>`<button class="facebtn ${newSet[key]===n?"selected "+color:""}" onclick="setNewFace('${key}',${n})">${pip[n]}</button>`).join("");
+}
+function setNewFace(key,n){newSet[key]=n;renderNewSetForm()}
+function renderNewSetForm(){
+ faceButtons("newLeftTop","blue","topL");faceButtons("newLeftFront","blue","frontL");
+ faceButtons("newRightTop","red","topR");faceButtons("newRightFront","red","frontR");
+ document.getElementById("previewLeftTop").innerHTML=mini(newSet.topL,"blue");
+ document.getElementById("previewLeftFront").innerHTML=mini(newSet.frontL,"blue");
+ document.getElementById("previewRightTop").innerHTML=mini(newSet.topR,"red");
+ document.getElementById("previewRightFront").innerHTML=mini(newSet.frontR,"red");
+}
+function openNewSet(){
+ document.getElementById("setOverlay").style.display="none";
+ newSet={topL:5,frontL:2,topR:4,frontR:6};renderNewSetForm();
+ document.getElementById("newSetOverlay").style.display="flex";
+}
+function closeNewSet(){document.getElementById("newSetOverlay").style.display="none"}
+function saveNewSet(){
+ sets.push({...newSet});selectedSet=sets.length-1;left=right=null;history=[];counts=Array.from({length:6},()=>Array(6).fill(0));
+ if(document.getElementById("sessionName")) document.getElementById("sessionName").textContent="New Session";closeNewSet();render();
+}
+function renderGrid(){
+ let g=document.getElementById("grid");g.innerHTML='<div class="cell head"></div>'+[1,2,3,4,5,6].map(n=>`<div class="cell head">${n}</div>`).join("");
+ for(let r=0;r<6;r++){g.innerHTML+=`<div class="cell rowhead">${r+1}</div>`+[0,1,2,3,4,5].map(c=>`<div class="cell ${counts[r][c]>4?"hot":""}">${counts[r][c]}</div>`).join("")}
+}
+function renderButtons(){
+ document.getElementById("rightButtons").innerHTML=[1,2,3,4,5,6].map(n=>`<button class="die red ${right===n?"selected":""}" onclick="pickRight(${n})">${dieFace(n)}</button>`).join("");
+ document.getElementById("leftButtons").innerHTML=[1,2,3,4,5,6].map(n=>`<button class="die blue ${left===n?"selected":""}" onclick="pickLeft(${n})">${dieFace(n)}</button>`).join("");
+}
+function pickRight(n){right=n;document.getElementById("status").textContent="Now select LEFT (blue)";renderButtons();if(n&&left!==null)record()}
+function pickLeft(n){if(right===null){document.getElementById("status").textContent="Select RIGHT first";return}left=n;renderButtons();record()}
+function record(){if(left===null||right===null)return;counts[left-1][right-1]++;history.push([left,right]);document.getElementById("lastRoll").innerHTML=`<span class="r">${left}</span> – <span class="g">${right}</span>`;document.getElementById("rollCount").textContent=history.length;left=right=null;document.getElementById("status").textContent="Select RIGHT (red), then LEFT (blue)";renderGrid();renderButtons();updateSessionInfo()}
+function undo(){let x=history.pop();if(!x)return;counts[x[0]-1][x[1]-1]--;document.getElementById("rollCount").textContent=history.length;let last=history[history.length-1];document.getElementById("lastRoll").innerHTML=last?`<span class="r">${last[0]}</span> – <span class="g">${last[1]}</span>`:"—";renderGrid();updateSessionInfo()}
+function newSession(){if(history.length&&!confirm("Start a new session? Current unsaved rolls will be cleared."))return;history=[];counts=Array.from({length:6},()=>Array(6).fill(0));left=right=null;document.getElementById("sessionName").textContent="Session "+new Date().toLocaleString();document.getElementById("rollCount").textContent="0";document.getElementById("lastRoll").textContent="—";render();updateSessionInfo()}
+
+function updateSessionInfo(){
+  const total=history.length;
+  const last=total?history[total-1]:null;
+  document.getElementById("infoLastRoll").textContent=last?`🔵 ${last[0]}  🔴 ${last[1]}`:"—";
+  document.getElementById("infoTotalRolls").textContent=total;
+
+  let sevens=0,outside=0,hardways=0;
+  for(const x of history){
+    const sum=x[0]+x[1];
+    if(sum===7) sevens++;
+    if([4,5,6,8,9,10].includes(sum)) outside++;
+    if(x[0]===x[1] && [2,3,4,5].includes(x[0])) hardways++;
+  }
+  document.getElementById("infoSevens").textContent=sevens;
+  document.getElementById("infoOutside").textContent=outside;
+  document.getElementById("infoHardways").textContent=hardways;
+}
+
+function exportCSV(){
+  let s=sets[selectedSet];
+  let rows=[
+    ["Version","70"],
+    [],
+    ["Dice Set","Left Top","Left Front","Right Top","Right Front"],
+    ["",s.topL,s.frontL,s.topR,s.frontR],
+    [],
+    ["Roll #","Left Die","Right Die","Total"]
+  ];
+
+  for(let i=0;i<history.length;i++){
+    let x=history[i];
+    rows.push([i+1,x[0],x[1],x[0]+x[1]]);
+  }
+
+  rows.push([]);
+  rows.push(["Left Die","Right Die","Count"]);
+  for(let r=0;r<6;r++)for(let c=0;c<6;c++)rows.push([r+1,c+1,counts[r][c]]);
+
+  let csv=rows.map(a=>a.map(v=>{
+    let t=String(v??"");
+    return /[",\n]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t;
+  }).join(",")).join("\n");
+
+  let blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  let a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="dice-session.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function render(){renderSets();renderGrid();renderButtons()}
+render();updateSessionInfo();
+
+/* V20 behavior fix: reliable post-New-Session roll entry */
+(function(){
+  let pendingRight = null;
+  let pendingLeft = null;
+
+  function syncRollEntry(){
+    if (typeof right !== "undefined") pendingRight = right ?? null;
+    if (typeof left !== "undefined") pendingLeft = left ?? null;
+  }
+
+  function commitIfReady(){
+    if (pendingRight == null || pendingLeft == null) return;
+    if (typeof history === "undefined" || !Array.isArray(history)) return;
+
+    history.push([Number(pendingLeft), Number(pendingRight)]);
+    pendingRight = null;
+    pendingLeft = null;
+
+    if (typeof render === "function") render();
+    if (typeof updateSessionInfo === "function") updateSessionInfo();
+  }
+
+  // Preserve the current visual functions but make button clicks reliable.
+  window.pickRight = function(n){
+    if (typeof right !== "undefined") right = Number(n);
+    pendingRight = Number(n);
+    if (typeof renderButtons === "function") renderButtons();
+    commitIfReady();
+  };
+
+  window.pickLeft = function(n){
+    if (typeof left !== "undefined") left = Number(n);
+    pendingLeft = Number(n);
+    if (typeof renderButtons === "function") renderButtons();
+    commitIfReady();
+  };
+
+  window.newSession = function(){
+    if (typeof history !== "undefined" && Array.isArray(history)) history.length = 0;
+    pendingRight = null;
+    pendingLeft = null;
+    if (typeof right !== "undefined") right = null;
+    if (typeof left !== "undefined") left = null;
+    if (typeof render === "function") render();
+    if (typeof updateSessionInfo === "function") updateSessionInfo();
+  };
+
+  syncRollEntry();
+})();
+
+</script>
+
+<script>
+(function(){
+  function addPipGrids(){
+    const overlay=document.querySelector('#newSetOverlay');
+    if(!overlay) return;
+    const buttons=overlay.querySelectorAll('.facebuttons button');
+    buttons.forEach((b,i)=>{
+      if(b.querySelector('.pip-grid')) return;
+      const n=(i%6)+1;
+      const cells={
+        1:[4],
+        2:[0,8],
+        3:[0,4,8],
+        4:[0,2,6,8],
+        5:[0,2,4,6,8],
+        6:[0,2,3,5,6,8]
+      }[n];
+      const grid=document.createElement('span');
+      grid.className='pip-grid';
+      for(let k=0;k<9;k++){
+        const pip=document.createElement('span');
+        pip.className='pip';
+        pip.style.visibility=cells.includes(k)?'visible':'hidden';
+        grid.appendChild(pip);
+      }
+      b.appendChild(grid);
+    });
+  }
+  const obs=new MutationObserver(addPipGrids);
+  obs.observe(document.documentElement,{subtree:true,childList:true});
+  addPipGrids();
+})();
+</script>
+
+<script>
+/* V47: explicit set-picker open/close handlers.
+   V46 was missing these functions, so clicking CURRENT DICE SET did nothing. */
+function openSetPicker(){
+  renderSets();
+  const overlay=document.getElementById("setOverlay");
+  if(overlay){
+    overlay.style.display="flex";
+    overlay.classList.add("open");
+  }
+}
+function closeSetPicker(event){
+  if(event && event.target !== event.currentTarget) return;
+  const overlay=document.getElementById("setOverlay");
+  if(overlay){
+    overlay.style.display="none";
+    overlay.classList.remove("open");
+  }
+}
+</script>
+
+<script>
+/* V48: saving a new dice set returns directly to the main screen. */
+(function(){
+  const originalOpenSetPicker = window.openSetPicker;
+  window.openSetPicker = function(){
+    return originalOpenSetPicker ? originalOpenSetPicker.apply(this, arguments) : undefined;
+  };
+
+  function closeAfterNewSetSave(){
+    const newOverlay = document.getElementById("newSetOverlay");
+    if(newOverlay){
+      newOverlay.style.display = "none";
+      newOverlay.classList.remove("open");
+    }
+    const picker = document.getElementById("setOverlay");
+    if(picker){
+      picker.style.display = "none";
+      picker.classList.remove("open");
+    }
+  }
+
+  window.closeAfterNewSetSave = closeAfterNewSetSave;
+})();
+</script>
+
+<script>
+document.addEventListener("click", function(e){
+  const btn = e.target.closest("#newSetOverlay button");
+  if(!btn) return;
+  const text = (btn.textContent || "").trim().toUpperCase();
+  if(text.includes("SAVE SET") || text.includes("SAVE DICE SET")){
+    setTimeout(function(){
+      if(typeof closeAfterNewSetSave === "function") closeAfterNewSetSave();
+    }, 50);
+  }
+});
+</script>
+
+<script>
+/* ===== V49: New Session starts with a clean session display ===== */
+(function(){
+  function clearSessionDisplay(){
+    // Clear common session counters/state variables when they exist.
+    try {
+      if (typeof rolls !== "undefined") rolls = 0;
+      if (typeof totalRolls !== "undefined") totalRolls = 0;
+      if (typeof rollCount !== "undefined") rollCount = 0;
+      if (typeof sevenCount !== "undefined") sevenCount = 0;
+      if (typeof outsideCount !== "undefined") outsideCount = 0;
+      if (typeof hardwayCount !== "undefined") hardwayCount = 0;
+    } catch(e) {}
+
+    // Clear visible session statistics without disturbing the dice-set
+    // selection or the main controls.
+    document.querySelectorAll(
+      '[id*="session" i] [data-session-value], ' +
+      '.session-info [data-session-value], ' +
+      '.session-stat [data-session-value]'
+    ).forEach(function(el){
+      el.textContent = "0";
+    });
+
+    // Remove/hide the Rolls row from Session Info.
+    document.querySelectorAll(
+      '#sessionInfo *, .session-info *, [class*="sessionInfo"] *'
+    ).forEach(function(el){
+      const text = (el.textContent || "").trim().toUpperCase();
+      if (text === "ROLLS" || text === "ROLL") {
+        const row = el.closest("tr, .info-row, .stat-row, .session-stat, .row, div");
+        if(row) row.style.display = "none";
+      }
+    });
+  }
+
+  function hookNewSession(){
+    document.addEventListener("click", function(e){
+      const btn = e.target.closest(
+        'button, [role="button"], .new-session, #newSession, [data-action="new-session"]'
+      );
+      if(!btn) return;
+
+      const text = (btn.textContent || "").trim().toUpperCase();
+      if(text.includes("NEW SESSION")){
+        // Let the app perform its normal reset first, then enforce a clean
+        // visible session display.
+        setTimeout(clearSessionDisplay, 50);
+      }
+    }, true);
+  }
+
+  function removeRollsRow(){
+    document.querySelectorAll(
+      '#sessionInfo *, .session-info *, [class*="sessionInfo"] *'
+    ).forEach(function(el){
+      const text = (el.textContent || "").trim().toUpperCase();
+      if(text === "ROLLS" || text === "ROLL"){
+        const row = el.closest("tr, .info-row, .stat-row, .session-stat, .row, div");
+        if(row) row.style.display = "none";
+      }
+    });
+  }
+
+  hookNewSession();
+  removeRollsRow();
+  new MutationObserver(removeRollsRow).observe(document.body, {
+    childList:true, subtree:true
+  });
+})();
+</script>
+
+<script>
+/* V50: New Session clears result values but keeps Session Info visible. */
+(function(){
+  function clearNewSessionValues(){
+    document.querySelectorAll(
+      '#sessionInfo [data-session-value], ' +
+      '.session-info [data-session-value], ' +
+      '.session-info-panel [data-session-value]'
+    ).forEach(function(el){
+      el.textContent = "0";
+    });
+
+    /* Remove only the Rolls row, not the entire Session Info box. */
+    document.querySelectorAll(
+      '#sessionInfo *, .session-info *, .session-info-panel *'
+    ).forEach(function(el){
+      const t=(el.textContent||"").trim().toUpperCase();
+      if(t==="ROLLS" || t==="ROLL"){
+        const row=el.closest("tr,.info-row,.stat-row,.session-stat,.row");
+        if(row) row.style.display="none";
+      }
+    });
+  }
+
+  document.addEventListener("click", function(e){
+    const btn=e.target.closest(
+      'button,[role="button"],.new-session,#newSession,[data-action="new-session"]'
+    );
+    if(!btn) return;
+    const t=(btn.textContent||"").trim().toUpperCase();
+    if(t.includes("NEW SESSION")){
+      setTimeout(clearNewSessionValues,100);
+    }
+  }, true);
+})();
+</script>
+
+<script>
+/* ===== V51: reliable New Session action ===== */
+(function(){
+  function resetSession(){
+    /* Clear common session state variables when they exist. */
+    const names = [
+      "rolls","totalRolls","rollCount","sevenCount",
+      "outsideCount","hardwayCount","sessionRolls"
+    ];
+    names.forEach(function(name){
+      try {
+        if (typeof window[name] !== "undefined") window[name] = 0;
+      } catch(e){}
+    });
+
+    /* Clear roll/result grids and session-result values, but preserve
+       current dice set and the Session Info container. */
+    document.querySelectorAll(
+      '[data-session-value], .session-stat-value, .session-value'
+    ).forEach(function(el){
+      el.textContent = "0";
+    });
+
+    /* Clear the visible roll history/results if present. */
+    document.querySelectorAll(
+      '#rollHistory, .roll-history, #resultsList, .results-list'
+    ).forEach(function(el){
+      el.innerHTML = "";
+    });
+
+    /* Remove only the Rolls row from Session Info. */
+    document.querySelectorAll(
+      '#sessionInfo *, .session-info *, .session-info-panel *'
+    ).forEach(function(el){
+      const t=(el.textContent||"").trim().toUpperCase();
+      if(t==="ROLLS" || t==="ROLL"){
+        const row=el.closest("tr,.info-row,.stat-row,.session-stat,.row");
+        if(row) row.style.display="none";
+      }
+    });
+
+    /* Return the main screen if an overlay is open. */
+    ["newSetOverlay","setOverlay"].forEach(function(id){
+      const el=document.getElementById(id);
+      if(el){
+        el.style.display="none";
+        el.classList.remove("open");
+      }
+    });
+  }
+
+  document.addEventListener("click", function(e){
+    const btn=e.target.closest("button,[role='button'],input[type='button'],input[type='submit']");
+    if(!btn) return;
+
+    const id=(btn.id||"").toLowerCase();
+    const text=(btn.textContent||btn.value||"").trim().toLowerCase();
+
+    if(
+      id.includes("newsession") ||
+      id.includes("new-session") ||
+      text === "new session" ||
+      text.includes("new session")
+    ){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      resetSession();
+    }
+  }, true);
+
+  window.startNewSession = resetSession;
+  window.newSession = resetSession;
+})();
+</script>
+
+
+
+<script>
+/* ===== V54: Session Summary ===== */
+function openSummary(){
+  const s=sets[selectedSet];
+  document.getElementById("summarySet").textContent =
+    "Current Dice Set  •  L " + s.topL + "/" + s.frontL +
+    "  •  R " + s.topR + "/" + s.frontR;
+
+  let sevens=0,outside=0,hardways=0;
+  for(const x of history){
+    const sum=x[0]+x[1];
+    if(sum===7) sevens++;
+    if([4,5,6,8,9,10].includes(sum)) outside++;
+    if(x[0]===x[1] && [2,3,4,5].includes(x[0])) hardways++;
+  }
+
+  document.getElementById("summaryRolls").textContent=history.length;
+  document.getElementById("summarySevens").textContent=sevens;
+  document.getElementById("summaryOutside").textContent=outside;
+  document.getElementById("summaryHardways").textContent=hardways;
+
+  const last=history.length ? history[history.length-1] : null;
+  document.getElementById("summaryLast").textContent =
+    last ? ("Left " + last[0] + "  •  Right " + last[1]) : "—";
+
+  document.getElementById("summaryOverlay").classList.add("open");
+}
+function closeSummary(event){
+  if(event && event.target !== event.currentTarget) return;
+  document.getElementById("summaryOverlay").classList.remove("open");
+}
+</script>
+
+<script>
+(function(){
+  const start=function(){
+    const grid=document.getElementById('grid');
+    if(!grid) return;
+    const obs=new MutationObserver(function(){
+      if(window.syncResultVisibility) window.syncResultVisibility();
+    });
+    obs.observe(grid,{subtree:true,childList:true,characterData:true,attributes:true});
+    if(window.syncResultVisibility) window.syncResultVisibility();
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start);
+  else start();
+})();
+</script>
+
+
+<script>
+(function(){
+  const oldNewSession = window.newSession;
+  if(typeof oldNewSession === "function"){
+    window.newSession = function(){
+      oldNewSession.apply(this, arguments);
+      const p=document.querySelector('.main-results-panel');
+      if(p) p.classList.remove('has-results');
+    };
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  function getNum(id){
+    const el=document.getElementById(id);
+    if(!el) return 0;
+    const n=parseInt((el.textContent||'').replace(/[^0-9-]/g,''),10);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  window.showSessionInfoSummary = function(){
+    const box=document.getElementById('sessionSummaryDisplay');
+    if(!box) return;
+
+    const rolls = getNum('infoTotalRolls');
+    const sevens = getNum('infoSevens');
+    const outside = getNum('infoOutside');
+    const hardways = getNum('infoHardways');
+
+    box.innerHTML =
+      '<div class="summary-line"><span>TOTAL ROLLS</span><strong>'+rolls+'</strong></div>'+
+      '<div class="summary-line"><span>7s</span><strong>'+sevens+'</strong></div>'+
+      '<div class="summary-line"><span>OUTSIDE</span><strong>'+outside+'</strong></div>'+
+      '<div class="summary-line"><span>HARDWAYS</span><strong>'+hardways+'</strong></div>';
+
+    box.classList.add('showing');
+  };
+
+  // Make the existing button reveal the summary in the Session Info box.
+  const oldOpenSummary = window.openSummary;
+  window.openSummary = function(){
+    if(typeof oldOpenSummary === 'function'){
+      try { oldOpenSummary.apply(this, arguments); } catch(e) {}
+    }
+    window.showSessionInfoSummary();
+  };
+})();
+</script>
+
+
+<script>
+(function(){
+  function updateSessionDateTime(){
+    const now = new Date();
+    const dateEl = document.getElementById('infoDate');
+    const timeEl = document.getElementById('infoStartTime');
+    if(dateEl) dateEl.textContent = now.toLocaleDateString(undefined,{
+      year:'numeric', month:'short', day:'numeric'
+    });
+    if(timeEl) timeEl.textContent = now.toLocaleTimeString(undefined,{
+      hour:'numeric', minute:'2-digit'
+    });
+  }
+
+  const originalNewSession = window.newSession;
+  if(typeof originalNewSession === 'function'){
+    window.newSession = function(){
+      originalNewSession.apply(this, arguments);
+      updateSessionDateTime();
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    updateSessionDateTime();
+  });
+})();
+</script>
+
+</body>
+</html>
