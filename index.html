@@ -1,4 +1,4 @@
-<!-- Version 82-6 -->
+<!-- Version 82-6.1 — iPad export fix; all other 82-6 behavior preserved -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -6189,7 +6189,7 @@ function exportCSV(){
   try {
     let s=sets[selectedSet];
     let rows=[
-      ["Version","82-6"],
+      ["Version","82-6.1"],
       ["Position",getCurrentPosition()],[],
       ["Dice Set","Left Top","Left Front","Right Top","Right Front"],
       ["",s.topL,s.frontL,s.topR,s.frontR],[],
@@ -6201,16 +6201,45 @@ function exportCSV(){
     let csv=rows.map(a=>a.map(v=>{let t=String(v??"");return /[",\r\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t;}).join(",")).join("\r\n");
     const d=new Date(),p=n=>String(n).padStart(2,"0");
     const filename="DT_"+d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+".csv";
-    const href="data:text/csv;charset=utf-8,%EF%BB%BF"+encodeURIComponent(csv);
-    const a=document.createElement("a");a.href=href;a.download=filename;a.setAttribute("download",filename);a.style.display="none";
-    document.body.appendChild(a);a.click();setTimeout(()=>{try{a.remove()}catch(_){}},1500);
-    let msg=document.getElementById("exportStatus");
-    if(!msg){msg=document.createElement("div");msg.id="exportStatus";msg.style.cssText="position:fixed;left:50%;top:90px;transform:translateX(-50%);z-index:99999;background:#1769c7;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,.25);";document.body.appendChild(msg);}
-    msg.textContent="EXPORT READY — "+filename;clearTimeout(window._exportStatusTimer);window._exportStatusTimer=setTimeout(()=>{try{msg.remove()}catch(_){}},5000);
+
+    /* 82-6.1: iPad/Safari export fix.
+       Prefer sharing the CSV as an actual File so iPad can offer
+       "Save to Files". Fall back to opening the CSV if file sharing
+       is unavailable. This avoids the unreliable <a download> path. */
+    const file=new File(["\uFEFF",csv],filename,{type:"text/csv;charset=utf-8"});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:filename}).then(()=>{
+        showExportStatus("EXPORT READY — "+filename);
+      }).catch(e=>{
+        if(e && e.name==="AbortError") return;
+        openCSVFallback(csv,filename);
+      });
+      return;
+    }
+    openCSVFallback(csv,filename);
   } catch(e) {
-    let msg=document.getElementById("exportStatus");
-    if(!msg){msg=document.createElement("div");msg.id="exportStatus";msg.style.cssText="position:fixed;left:50%;top:90px;transform:translateX(-50%);z-index:99999;background:#b3261e;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;";document.body.appendChild(msg);}
-    msg.textContent="EXPORT FAILED — "+(e&&e.message?e.message:e);clearTimeout(window._exportStatusTimer);window._exportStatusTimer=setTimeout(()=>{try{msg.remove()}catch(_){}},6000);
+    showExportStatus("EXPORT FAILED — "+(e&&e.message?e.message:e),true);
+  }
+}
+
+function showExportStatus(text,isError){
+  let msg=document.getElementById("exportStatus");
+  if(!msg){msg=document.createElement("div");msg.id="exportStatus";msg.style.cssText="position:fixed;left:50%;top:90px;transform:translateX(-50%);z-index:99999;background:"+(isError?"#b3261e":"#1769c7")+";color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;box-shadow:0 3px 12px rgba(0,0,0,.25);";document.body.appendChild(msg);}
+  msg.textContent=text;
+  clearTimeout(window._exportStatusTimer);
+  window._exportStatusTimer=setTimeout(()=>{try{msg.remove()}catch(_){}},isError?6000:5000);
+}
+
+function openCSVFallback(csv,filename){
+  try{
+    const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const w=window.open(url,"_blank");
+    if(!w){ window.location.href=url; }
+    showExportStatus("EXPORT READY — "+filename);
+    setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(_){}},60000);
+  }catch(e){
+    showExportStatus("EXPORT FAILED — "+(e&&e.message?e.message:e),true);
   }
 }
 
