@@ -1,6 +1,6 @@
 <!-- Version 86-10 -->
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Dice Tracker 86-10</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Dice Tracker 86-11</title>
 <style>
 :root{--green:#168447;--green2:#0f6d38;--blue:#1769d1;--red:#d92b2b;--ink:#18302a;--line:#cfd9d4;--panel:#fff;--bg:#eef3ef}
 *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;height:100%;overflow:hidden}
@@ -189,10 +189,10 @@ button,select{font:inherit} button{cursor:pointer;touch-action:manipulation}
 
 </head><body>
 <div class="app">
-<header class="header"><div class="brand">DICE TRACKER <small>Version 86-10 • iPad Landscape</small></div><div class="legend-top">BLUE = LEFT &nbsp;•&nbsp; RED = RIGHT</div><div class="actions"><button class="action" onclick="newSession()">＋ NEW SESSION</button><button class="action" onclick="openSessionInfo()">▣ SESSION INFO</button><button class="action" onclick="exportCSV()">☁ EXPORT</button></div></header><div class="main">
+<header class="header"><div class="brand">DICE TRACKER <small>Version 86-11 • iPad Landscape</small></div><div class="legend-top">BLUE = LEFT &nbsp;•&nbsp; RED = RIGHT</div><div class="actions"><button class="action" onclick="newSession()">＋ NEW SESSION</button><button class="action" onclick="openSessionInfo()">▣ SESSION INFO</button><button class="action" onclick="exportCSV()">☁ EXPORT</button></div></header><div class="main">
 <section class="panel last-panel"><div class="panel-title">LAST ROLLS</div><div class="last-list" id="lastRolls"></div></section>
 <div class="workspace">
-<section class="panel current"><div class="panel-title">CURRENT DICE SET</div><div class="current-body"><div class="current-dice" id="currentDice"></div><div class="fieldlabel">POSITION</div><div class="pos"><button id="posL" onclick="setPosition('LEFT')">LEFT</button><button id="posR" onclick="setPosition('RIGHT')">RIGHT</button><button id="posE" onclick="setPosition('END')">END</button></div><div class="fieldlabel">OBJECTIVE</div><select id="objective" onchange="currentObjective=this.value"><option selected>No Seven</option><option>Outside Numbers</option><option>Inside Numbers</option><option>6s &amp; 8s</option><option>Hardways</option><option>Hard 4</option><option>Hard 6</option><option>Hard 8</option><option>Hard 10</option><option>Small</option><option>Tall</option><option>Box Numbers</option><option>Any Crap</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select><div class="craps-status-panel" id="crapsStatusPanel" aria-live="polite"><div class="craps-status-cell"><span class="craps-status-label">ROLL PHASE</span><strong id="crapsRollPhase">COME OUT ROLL</strong></div><div class="craps-status-cell point-cell"><span class="craps-status-label">POINT VALUE</span><strong id="crapsPointValue">—</strong></div></div></div></section>
+<section class="panel current"><div class="panel-title">CURRENT DICE SET</div><div class="current-body"><div class="current-dice" id="currentDice"></div><div class="fieldlabel">POSITION</div><div class="pos"><button id="posL" onclick="setPosition('LEFT')">LEFT</button><button id="posR" onclick="setPosition('RIGHT')">RIGHT</button><button id="posE" onclick="setPosition('END')">END</button></div><div class="fieldlabel">OBJECTIVE</div><select id="objective" onchange="currentObjective=this.value"><option selected>No Seven</option><option>Outside Numbers</option><option>Inside Numbers</option><option>6s &amp; 8s</option><option>Hardways</option><option>Hard 4</option><option>Hard 6</option><option>Hard 8</option><option>Hard 10</option><option>Small</option><option>Tall</option><option>Box Numbers</option><option>Any Crap</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select><div class="craps-status-panel" id="crapsStatusPanel" aria-live="polite"><div class="craps-status-cell"><strong id="crapsRollPhase">COME OUT ROLL</strong></div><div class="craps-status-cell point-cell"><strong id="crapsPointValue">—</strong></div></div></div></section>
 <section class="panel select-panel"><div class="panel-title">SELECT DICE SET</div><div class="set-grid" id="setGrid"></div></section>
 <section class="panel results-panel"><div class="results-wrap"><div class="current-results"><div class="panel-title current-results-title">CURRENT RESULTS</div><div class="small-dice" id="currentResults"><div class="die red"></div><div class="die blue"></div></div><button class="undo" onclick="undo()">↶ UNDO</button></div><div class="enter"><div class="enter-title"><span class="enter-title-text">SELECT DICE RESULTS</span><span class="fire-bet-status" id="fireBetStatus" aria-live="polite">🔥 FIRE BET 0/6</span></div><div class="enter-row"><div class="enter-label">RED</div><div id="rightButtons" style="display:contents"></div></div><div class="enter-row"><div class="enter-label">BLUE</div><div id="leftButtons" style="display:contents"></div></div><div class="select-result-number-status" id="selectResultNumberStatus">
   <span data-number="2">2</span>
@@ -343,7 +343,7 @@ function csvParse(text){
 }
 async function exportCSV(){
   const rows=[
-    ['Version','86-10'],
+    ['Version','86-11'],
     ['Objective','Position','Dice Set','Left Die','Right Die']
   ];
   rollRecords.forEach(r=>rows.push([
@@ -1542,10 +1542,3 @@ renderAll();
 })();
 </script>
 
-<style id="v86-10-current-dice-smaller">
-/* Reduce Current Dice Set dice slightly so the roll-phase and point value stay visible on iPad landscape. This override is intentionally last because older version style blocks follow the document's closing tags. */
-.current-diebox .die { width:72px !important; height:72px !important; border-radius:10px !important; }
-.current-diebox .die i { width:78% !important; height:78% !important; }
-.current-dice { row-gap:4px !important; }
-.current-diebox { gap:2px !important; }
-</style>
